@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import VendorAuth from "@/components/vendor/VendorAuth";
 import VendorProfile from "@/components/vendor/VendorProfile";
 import PincodeManagement from "@/components/vendor/PincodeManagement";
@@ -13,7 +13,9 @@ import { Button } from "@/components/ui/button";
 import Loading from "@/components/ui/loading";
 import { LogOut, User, MapPin, BarChart3, Package, Tag, Bell, ShoppingCart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { Product, VendorProduct } from "@/lib/api";
+import { Product, VendorProduct, ProductManager } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 export type Discount = {
   id: string;
@@ -36,6 +38,31 @@ const VendorDashboard = () => {
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('catalog');
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [vendorProducts, setVendorProducts] = useState<VendorProduct[]>([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+  const { toast } = useToast();
+
+  // Load vendor products when component mounts
+  useEffect(() => {
+    const loadVendorProducts = async () => {
+      try {
+        setIsLoadingProducts(true);
+        const products = await ProductManager.getVendorProducts();
+        setVendorProducts(products);
+      } catch (error) {
+        console.error('Error loading vendor products:', error);
+        toast({
+          title: "Error loading products",
+          description: error instanceof Error ? error.message : "Failed to load products",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingProducts(false);
+      }
+    };
+
+    loadVendorProducts();
+  }, [toast]);
 
   const handleProductsSelected = (products: Product[]) => {
     setSelectedProducts(products);
@@ -92,44 +119,20 @@ const VendorDashboard = () => {
     );
   }
 
-  // Main vendor dashboard with tabs (for both new vendors after onboarding and existing vendors)
+  // Main dashboard for existing vendors
   return (
     <div className="min-h-screen bg-gradient-card">
-      {/* Header */}
-      <div className="bg-gradient-primary text-white p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/20">
-                <img 
-                  src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
-                  alt="DropSi Logo" 
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold font-poppins">DropSi Vendor Portal</h1>
-                <p className="text-blue-100 font-inter">Welcome back, {vendor.displayName}!</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              {/* Notification Icon */}
-              <Button variant="ghost" size="sm" className="relative text-white hover:bg-white/20 p-2 rounded-full">
-                <Bell className="h-5 w-5" />
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
-                  <span className="text-xs text-white font-semibold">3</span>
-                </div>
-              </Button>
-              
-              {/* Logout Button */}
-              <Button variant="secondary" size="sm" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          </div>
+      <div className="flex items-center justify-between p-6 border-b bg-card">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-semibold">Vendor Dashboard</h1>
+          <Badge variant="outline" className="text-sm">
+            {vendor.displayName}
+          </Badge>
         </div>
+        <Button variant="outline" onClick={handleLogout}>
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
       </div>
 
       <div className="max-w-7xl mx-auto p-6">
@@ -176,7 +179,13 @@ const VendorDashboard = () => {
           </TabsContent>
 
           <TabsContent value="discounts">
-            <DiscountManagement vendorProducts={[]} />
+            {isLoadingProducts ? (
+              <div className="flex items-center justify-center py-12">
+                <Loading size="lg" text="Loading products..." />
+              </div>
+            ) : (
+              <DiscountManagement vendorProducts={vendorProducts} />
+            )}
           </TabsContent>
 
           <TabsContent value="areas">

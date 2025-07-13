@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Package, Truck, IndianRupee, Edit, BarChart3, Settings, CheckCircle, XCircle, Tag, Plus, Trash2, Save, Percent, X, ArrowRight, Loader2 } from "lucide-react";
-import { VendorProduct, ProductManager, Product } from "@/lib/api";
+import { VendorProduct, ProductManager, Product, DiscountManager } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import Loading from "@/components/ui/loading";
 import { toTitleCase } from "@/lib/utils";
@@ -27,13 +27,14 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
   const [showDiscountDialog, setShowDiscountDialog] = useState(false);
   const [selectedVendorProduct, setSelectedVendorProduct] = useState<VendorProduct | null>(null);
   const [newDiscount, setNewDiscount] = useState({
-    discount_type: "percentage" as "percentage" | "flat",
-    discount_value: 0,
-    card_title: "",
+    discountType: "percentage" as "percentage" | "flat",
+    discountValue: 0,
+    cardTitle: "",
     description: "",
     terms: "",
-    starts_at: "",
-    ends_at: ""
+    startsAt: "",
+    endsAt: "",
+    isActive: true
   });
 
   // Add More Products Modal State
@@ -316,13 +317,14 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
   const handleCreateDiscount = (vendorProduct: VendorProduct) => {
     setSelectedVendorProduct(vendorProduct);
     setNewDiscount({
-      discount_type: "percentage",
-      discount_value: 0,
-      card_title: "",
+      discountType: "percentage",
+      discountValue: 0,
+      cardTitle: "",
       description: "",
       terms: "",
-      starts_at: "",
-      ends_at: ""
+      startsAt: "",
+      endsAt: "",
+      isActive: true
     });
     setShowDiscountDialog(true);
   };
@@ -336,7 +338,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
   };
 
   const handleSaveDiscount = async () => {
-    if (!selectedVendorProduct || !newDiscount.card_title || !newDiscount.discount_value) {
+    if (!selectedVendorProduct || !newDiscount.cardTitle || !newDiscount.discountValue) {
       toast({
         title: "Missing information",
         description: "Please fill all required fields.",
@@ -346,24 +348,39 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
     }
 
     try {
-      // TODO: Replace with actual API call
       const discountedPrice = calculateDiscountedPrice(
         selectedVendorProduct.price,
-        newDiscount.discount_type,
-        newDiscount.discount_value
+        newDiscount.discountType,
+        newDiscount.discountValue
       );
+
+      // Create discount using the API
+      const discountData = {
+        vendorProductId: selectedVendorProduct.id,
+        discountType: newDiscount.discountType,
+        discountValue: newDiscount.discountValue,
+        discountedPrice: discountedPrice,
+        cardTitle: newDiscount.cardTitle,
+        description: newDiscount.description,
+        terms: newDiscount.terms,
+        startsAt: newDiscount.startsAt,
+        endsAt: newDiscount.endsAt,
+        isActive: newDiscount.isActive
+      };
+
+      await DiscountManager.createDiscount(discountData);
 
       setShowDiscountDialog(false);
       setSelectedVendorProduct(null);
 
       toast({
         title: "Discount created successfully",
-        description: `Discount "${newDiscount.card_title}" has been created for ${selectedVendorProduct.product.name}.`,
+        description: `Discount "${newDiscount.cardTitle}" has been created for ${selectedVendorProduct.product.name}.`,
       });
     } catch (error) {
       toast({
         title: "Failed to create discount",
-        description: "Please try again or contact support.",
+        description: error instanceof Error ? error.message : "Please try again or contact support.",
         variant: "destructive",
       });
     }
@@ -976,9 +993,9 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
               <div className="space-y-2">
                 <Label>Discount Type</Label>
                 <Select
-                  value={newDiscount.discount_type}
+                  value={newDiscount.discountType}
                   onValueChange={(value: "percentage" | "flat") => 
-                    setNewDiscount(prev => ({ ...prev, discount_type: value }))
+                    setNewDiscount(prev => ({ ...prev, discountType: value }))
                   }
                 >
                   <SelectTrigger>
@@ -994,16 +1011,16 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                 <Label>Discount Value</Label>
                 <Input
                   type="number"
-                  value={newDiscount.discount_value}
-                  onChange={(e) => setNewDiscount(prev => ({ ...prev, discount_value: parseFloat(e.target.value) || 0 }))}
+                  value={newDiscount.discountValue}
+                  onChange={(e) => setNewDiscount(prev => ({ ...prev, discountValue: parseFloat(e.target.value) || 0 }))}
                 />
               </div>
             </div>
             <div className="space-y-2">
               <Label>Discount Title</Label>
               <Input
-                value={newDiscount.card_title}
-                onChange={(e) => setNewDiscount(prev => ({ ...prev, card_title: e.target.value }))}
+                value={newDiscount.cardTitle}
+                onChange={(e) => setNewDiscount(prev => ({ ...prev, cardTitle: e.target.value }))}
                 placeholder="e.g., Weekend Special"
               />
             </div>
