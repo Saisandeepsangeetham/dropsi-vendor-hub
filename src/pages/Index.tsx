@@ -11,9 +11,11 @@ const Index = () => {
       <div className="bg-gradient-hero text-white py-20">
         <div className="max-w-7xl mx-auto px-6 text-center">
           <div className="flex justify-center mb-6">
-            <div className="w-24 h-24 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-sm">
-              <Truck className="h-12 w-12 text-white" />
-            </div>
+            <img 
+              src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
+              alt="DropSi Logo" 
+              className="w-24 h-24 object-contain"
+            />
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-6">
             DropSi
