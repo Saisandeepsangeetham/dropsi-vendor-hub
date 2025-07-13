@@ -241,28 +241,31 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{vendorProduct.product.brand_name}</p>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
-                          <div>
-                            <span className="text-muted-foreground">MRP:</span>
-                            <span className="font-semibold ml-1">₹{vendorProduct.mrp}</span>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
+                          <div className="flex flex-col">
+                            <span className="text-muted-foreground text-xs">MRP</span>
+                            <span className="font-semibold">₹{vendorProduct.mrp}</span>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">Price:</span>
-                            <span className="font-semibold ml-1">₹{vendorProduct.price}</span>
+                          <div className="flex flex-col">
+                            <span className="text-muted-foreground text-xs">Price</span>
+                            <span className="font-semibold">₹{vendorProduct.price}</span>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">Stock:</span>
-                            <span className="font-semibold ml-1">{vendorProduct.stock_qty} {vendorProduct.product.uom}</span>
+                          <div className="flex flex-col">
+                            <span className="text-muted-foreground text-xs">Stock</span>
+                            <span className="font-semibold">{vendorProduct.stock_qty} {vendorProduct.product.uom}</span>
                           </div>
-                          <div>
-                            <span className="text-muted-foreground">Value:</span>
-                            <span className="font-semibold ml-1">₹{(vendorProduct.price * vendorProduct.stock_qty).toFixed(2)}</span>
+                          <div className="flex flex-col">
+                            <span className="text-muted-foreground text-xs">Value</span>
+                            <span className="font-semibold">₹{(vendorProduct.price * vendorProduct.stock_qty).toFixed(2)}</span>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Truck className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">
-                              {vendorProduct.delivery_supported ? "Self Delivery" : "DropSi Delivery"}
-                            </span>
+                          <div className="flex flex-col col-span-2 sm:col-span-1">
+                            <span className="text-muted-foreground text-xs">Delivery</span>
+                            <div className="flex items-center gap-1">
+                              <Truck className="h-3 w-3 text-muted-foreground" />
+                              <span className="text-sm font-medium">
+                                {vendorProduct.delivery_supported ? "Self" : "DropSi"}
+                              </span>
+                            </div>
                           </div>
                         </div>
                       </div>
