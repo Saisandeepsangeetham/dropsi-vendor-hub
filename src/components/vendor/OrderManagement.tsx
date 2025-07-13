@@ -21,7 +21,9 @@ import {
   Filter,
   Eye,
   TrendingUp,
-  Clock
+  Clock,
+  MapPin,
+  User
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -38,8 +40,25 @@ const mockPackagingData = [
     currentStock: 100,
     requiredStock: 25,
     orders: [
-      { type: 'one-time', customerCount: 3, quantity: 15 },
-      { type: 'recurring', customerCount: 2, quantity: 10 }
+      { 
+        type: 'one-time', 
+        customerCount: 3, 
+        quantity: 15,
+        customerDetails: [
+          { customerId: 'C001', customerName: 'Rahul Sharma', quantity: 5, address: 'Sector 15, Gurugram' },
+          { customerId: 'C002', customerName: 'Priya Singh', quantity: 3, address: 'DLF Phase 2' },
+          { customerId: 'C003', customerName: 'Amit Kumar', quantity: 7, address: 'Cyber City' }
+        ]
+      },
+      { 
+        type: 'recurring', 
+        customerCount: 2, 
+        quantity: 10,
+        customerDetails: [
+          { customerId: 'C004', customerName: 'Sunita Devi', quantity: 4, address: 'Sector 12, Gurugram', frequency: 'Weekly' },
+          { customerId: 'C005', customerName: 'Ravi Gupta', quantity: 6, address: 'Golf Course Road', frequency: 'Daily' }
+        ]
+      }
     ]
   },
   {
@@ -52,8 +71,42 @@ const mockPackagingData = [
     currentStock: 50,
     requiredStock: 48,
     orders: [
-      { type: 'one-time', customerCount: 8, quantity: 20 },
-      { type: 'recurring', customerCount: 14, quantity: 28 }
+      { 
+        type: 'one-time', 
+        customerCount: 8, 
+        quantity: 20,
+        customerDetails: [
+          { customerId: 'C006', customerName: 'Meera Jain', quantity: 2, address: 'Sector 14' },
+          { customerId: 'C007', customerName: 'Rohit Verma', quantity: 3, address: 'Sector 18' },
+          { customerId: 'C008', customerName: 'Kavita Agarwal', quantity: 1, address: 'DLF Phase 1' },
+          { customerId: 'C009', customerName: 'Suresh Yadav', quantity: 4, address: 'Sector 21' },
+          { customerId: 'C010', customerName: 'Deepika Roy', quantity: 2, address: 'Sector 22' },
+          { customerId: 'C011', customerName: 'Vikash Singh', quantity: 3, address: 'Sector 23' },
+          { customerId: 'C012', customerName: 'Anita Sharma', quantity: 2, address: 'Sector 24' },
+          { customerId: 'C013', customerName: 'Manoj Kumar', quantity: 3, address: 'Sector 25' }
+        ]
+      },
+      { 
+        type: 'recurring', 
+        customerCount: 14, 
+        quantity: 28,
+        customerDetails: [
+          { customerId: 'C014', customerName: 'Rajesh Pandey', quantity: 2, address: 'Sector 26', frequency: 'Daily' },
+          { customerId: 'C015', customerName: 'Sita Devi', quantity: 1, address: 'Sector 27', frequency: 'Daily' },
+          { customerId: 'C016', customerName: 'Ajay Tiwari', quantity: 3, address: 'Sector 28', frequency: 'Daily' },
+          { customerId: 'C017', customerName: 'Pooja Mishra', quantity: 2, address: 'Sector 29', frequency: 'Daily' },
+          { customerId: 'C018', customerName: 'Ramesh Singh', quantity: 2, address: 'Sector 30', frequency: 'Daily' },
+          { customerId: 'C019', customerName: 'Nisha Agrawal', quantity: 1, address: 'Sector 31', frequency: 'Daily' },
+          { customerId: 'C020', customerName: 'Vinod Kumar', quantity: 2, address: 'Sector 32', frequency: 'Daily' },
+          { customerId: 'C021', customerName: 'Rekha Sharma', quantity: 3, address: 'Sector 33', frequency: 'Daily' },
+          { customerId: 'C022', customerName: 'Sanjay Gupta', quantity: 2, address: 'Sector 34', frequency: 'Daily' },
+          { customerId: 'C023', customerName: 'Geeta Singh', quantity: 2, address: 'Sector 35', frequency: 'Daily' },
+          { customerId: 'C024', customerName: 'Ashok Yadav', quantity: 1, address: 'Sector 36', frequency: 'Daily' },
+          { customerId: 'C025', customerName: 'Kiran Devi', quantity: 3, address: 'Sector 37', frequency: 'Daily' },
+          { customerId: 'C026', customerName: 'Vikas Jain', quantity: 2, address: 'Sector 38', frequency: 'Daily' },
+          { customerId: 'C027', customerName: 'Sangita Roy', quantity: 2, address: 'Sector 39', frequency: 'Daily' }
+        ]
+      }
     ]
   },
   {
@@ -66,8 +119,47 @@ const mockPackagingData = [
     currentStock: 80,
     requiredStock: 120,
     orders: [
-      { type: 'one-time', customerCount: 12, quantity: 60 },
-      { type: 'recurring', customerCount: 15, quantity: 60 }
+      { 
+        type: 'one-time', 
+        customerCount: 12, 
+        quantity: 60,
+        customerDetails: [
+          { customerId: 'C028', customerName: 'Arjun Mehta', quantity: 12, address: 'Sector 40' },
+          { customerId: 'C029', customerName: 'Divya Singh', quantity: 6, address: 'Sector 41' },
+          { customerId: 'C030', customerName: 'Rajesh Kumar', quantity: 8, address: 'Sector 42' },
+          { customerId: 'C031', customerName: 'Priyanka Jain', quantity: 4, address: 'Sector 43' },
+          { customerId: 'C032', customerName: 'Manish Agarwal', quantity: 5, address: 'Sector 44' },
+          { customerId: 'C033', customerName: 'Sneha Sharma', quantity: 3, address: 'Sector 45' },
+          { customerId: 'C034', customerName: 'Harish Gupta', quantity: 7, address: 'Sector 46' },
+          { customerId: 'C035', customerName: 'Neha Singh', quantity: 2, address: 'Sector 47' },
+          { customerId: 'C036', customerName: 'Kailash Yadav', quantity: 4, address: 'Sector 48' },
+          { customerId: 'C037', customerName: 'Ritu Devi', quantity: 3, address: 'Sector 49' },
+          { customerId: 'C038', customerName: 'Mohan Kumar', quantity: 3, address: 'Sector 50' },
+          { customerId: 'C039', customerName: 'Sarita Singh', quantity: 3, address: 'Sector 51' }
+        ]
+      },
+      { 
+        type: 'recurring', 
+        customerCount: 15, 
+        quantity: 60,
+        customerDetails: [
+          { customerId: 'C040', customerName: 'Dev Sharma', quantity: 6, address: 'Sector 52', frequency: 'Weekly' },
+          { customerId: 'C041', customerName: 'Kavya Singh', quantity: 4, address: 'Sector 53', frequency: 'Weekly' },
+          { customerId: 'C042', customerName: 'Rajiv Gupta', quantity: 3, address: 'Sector 54', frequency: 'Weekly' },
+          { customerId: 'C043', customerName: 'Ananya Devi', quantity: 5, address: 'Sector 55', frequency: 'Weekly' },
+          { customerId: 'C044', customerName: 'Suresh Kumar', quantity: 2, address: 'Sector 56', frequency: 'Weekly' },
+          { customerId: 'C045', customerName: 'Radha Singh', quantity: 4, address: 'Sector 57', frequency: 'Weekly' },
+          { customerId: 'C046', customerName: 'Manoj Jain', quantity: 3, address: 'Sector 58', frequency: 'Weekly' },
+          { customerId: 'C047', customerName: 'Shilpa Agarwal', quantity: 5, address: 'Sector 59', frequency: 'Weekly' },
+          { customerId: 'C048', customerName: 'Virender Kumar', quantity: 4, address: 'Sector 60', frequency: 'Weekly' },
+          { customerId: 'C049', customerName: 'Sunita Sharma', quantity: 3, address: 'Sector 61', frequency: 'Weekly' },
+          { customerId: 'C050', customerName: 'Ravi Singh', quantity: 6, address: 'Sector 62', frequency: 'Weekly' },
+          { customerId: 'C051', customerName: 'Meenu Gupta', quantity: 4, address: 'Sector 63', frequency: 'Weekly' },
+          { customerId: 'C052', customerName: 'Dinesh Yadav', quantity: 3, address: 'Sector 64', frequency: 'Weekly' },
+          { customerId: 'C053', customerName: 'Lakshmi Devi', quantity: 4, address: 'Sector 65', frequency: 'Weekly' },
+          { customerId: 'C054', customerName: 'Vikram Singh', quantity: 4, address: 'Sector 66', frequency: 'Weekly' }
+        ]
+      }
     ]
   }
 ];
@@ -137,26 +229,59 @@ const ProductDetailSheet: React.FC<ProductDetailProps> = ({ product }) => {
 
           <div>
             <h4 className="font-medium mb-3">Order Breakdown</h4>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {product.orders.map((order, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-2">
-                    {order.type === 'one-time' ? (
-                      <ShoppingCart className="h-4 w-4 text-blue-500" />
-                    ) : (
-                      <Repeat className="h-4 w-4 text-purple-500" />
-                    )}
-                    <div>
-                      <div className="font-medium text-sm">
-                        {order.type === 'one-time' ? 'One-time Orders' : 'Recurring Plans'}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {order.customerCount} customers
+                <div key={index} className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      {order.type === 'one-time' ? (
+                        <ShoppingCart className="h-4 w-4 text-blue-500" />
+                      ) : (
+                        <Repeat className="h-4 w-4 text-purple-500" />
+                      )}
+                      <div>
+                        <div className="font-medium text-sm">
+                          {order.type === 'one-time' ? 'One-time Orders' : 'Recurring Plans'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {order.customerCount} customers • {order.quantity} {product.unit} total
+                        </div>
                       </div>
                     </div>
+                    <div className="text-right">
+                      <div className="font-semibold">{order.quantity} {product.unit}</div>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <div className="font-semibold">{order.quantity} {product.unit}</div>
+                  
+                  {/* Customer Details Table */}
+                  <div className="bg-background border rounded-lg overflow-hidden">
+                    <div className="bg-muted/50 px-3 py-2 border-b">
+                      <h5 className="text-sm font-medium">Customer Details</h5>
+                    </div>
+                    <div className="max-h-40 overflow-y-auto">
+                      {order.customerDetails?.map((customer, customerIndex) => (
+                        <div key={customerIndex} className="flex items-center justify-between p-3 border-b last:border-b-0 hover:bg-muted/20">
+                          <div className="flex items-center gap-2 min-w-0 flex-1">
+                            <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-medium text-sm truncate">{customer.customerName}</div>
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                <MapPin className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">{customer.address}</span>
+                              </div>
+                              {customer.frequency && (
+                                <div className="text-xs text-purple-600 font-medium">
+                                  {customer.frequency}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <div className="font-semibold text-sm">{customer.quantity} {product.unit}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -433,13 +558,13 @@ export const OrderManagement: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex gap-2 mt-4 flex-wrap">
                     {item.orders.map((order, index) => (
                       <Badge key={index} variant="secondary" className="text-xs">
                         {order.type === 'one-time' ? (
-                          <><ShoppingCart className="h-3 w-3 mr-1" />One-time: {order.quantity}{item.unit}</>
+                          <><ShoppingCart className="h-3 w-3 mr-1" />One-time: {order.customerCount} customers ({order.quantity}{item.unit})</>
                         ) : (
-                          <><Repeat className="h-3 w-3 mr-1" />Recurring: {order.quantity}{item.unit}</>
+                          <><Repeat className="h-3 w-3 mr-1" />Recurring: {order.customerCount} customers ({order.quantity}{item.unit})</>
                         )}
                       </Badge>
                     ))}
