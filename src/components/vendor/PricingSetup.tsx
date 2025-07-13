@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Package, Truck, IndianRupee, ArrowRight, ArrowLeft } from "lucide-react";
-import { Product, VendorProduct } from "@/pages/VendorDashboard";
+import { Package, Truck, IndianRupee, ArrowRight, ArrowLeft, Loader2 } from "lucide-react";
+import { Product, VendorProduct, ProductManager } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import Loading from "@/components/ui/loading";
 
 interface PricingSetupProps {
   selectedProducts: Product[];
@@ -17,21 +18,28 @@ interface PricingSetupProps {
 }
 
 const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false, onCancel }: PricingSetupProps) => {
-  const [productConfigs, setProductConfigs] = useState<Record<string, Partial<VendorProduct>>>(
+  const [productConfigs, setProductConfigs] = useState<Record<string, {
+    price: number;
+    mrp: number;
+    stockQty: number;
+    isActive: boolean;
+    deliverySupported: boolean;
+  }>>(
     selectedProducts.reduce((acc, product) => ({
       ...acc,
       [product.id]: {
         price: 0,
         mrp: 0,
-        stock_qty: 0,
-        is_active: true,
-        delivery_supported: false
+        stockQty: 0,
+        isActive: true,
+        deliverySupported: false
       }
     }), {})
   );
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
-  const updateProductConfig = (productId: string, field: keyof VendorProduct, value: any) => {
+  const updateProductConfig = (productId: string, field: string, value: any) => {
     setProductConfigs(prev => ({
       ...prev,
       [productId]: {
@@ -46,7 +54,7 @@ const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false
       const config = productConfigs[product.id];
       return config?.price && config.price > 0 && 
              config?.mrp && config.mrp > 0 &&
-             config?.stock_qty && config.stock_qty > 0 &&
+             config?.stockQty && config.stockQty > 0 &&
              config.mrp >= config.price; // MRP should be >= selling price
     });
   };
@@ -62,47 +70,54 @@ const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false
     }
 
     try {
-      // TODO: Replace with actual Supabase insert to vendor_products table
-      // const vendorProductsData = selectedProducts.map(product => ({
-      //   vendor_id: vendorId,
-      //   product_id: product.id,
-      //   price: productConfigs[product.id]?.price || 0,
-      //   mrp: productConfigs[product.id]?.mrp || 0,
-      //   stock_qty: productConfigs[product.id]?.stock_qty || 0,
-      //   is_active: productConfigs[product.id]?.is_active || true,
-      //   delivery_supported: productConfigs[product.id]?.delivery_supported || false
-      // }));
+      setIsSubmitting(true);
 
-      // const { data, error } = await supabase
-      //   .from('vendor_products')
-      //   .insert(vendorProductsData)
-      //   .select('*, products!inner(*)');
-
-      // Mock the vendor products with proper structure
-      const vendorProducts: VendorProduct[] = selectedProducts.map(product => ({
-        id: `vp-${product.id}`,
-        vendor_id: "vendor-1",
-        product_id: product.id,
-        price: productConfigs[product.id]?.price || 0,
-        mrp: productConfigs[product.id]?.mrp || 0,
-        stock_qty: productConfigs[product.id]?.stock_qty || 0,
-        is_active: productConfigs[product.id]?.is_active || true,
-        delivery_supported: productConfigs[product.id]?.delivery_supported || false,
-        product: product
-      }));
-
-      onComplete(vendorProducts);
-
-      toast({
-        title: "Products configured successfully",
-        description: `${selectedProducts.length} products have been added to your inventory.`,
+      // Prepare data for bulk add API
+      const productsToAdd = selectedProducts.map(product => {
+        const config = productConfigs[product.id];
+        return {
+          productId: product.id,
+          price: config.price,
+          mrp: config.mrp,
+          stockQty: config.stockQty,
+          deliverySupported: config.deliverySupported
+        };
       });
+
+      // Call bulk add API
+      const response = await ProductManager.bulkAddProducts(productsToAdd);
+
+      if (response.success) {
+        // Convert the response to VendorProduct format for the dashboard
+        const vendorProducts: VendorProduct[] = response.results.success.map((vp: any) => ({
+          id: vp.id,
+          vendorId: vp.vendorId,
+          productId: vp.productId,
+          price: vp.price,
+          mrp: vp.mrp,
+          stockQty: vp.stockQty,
+          isActive: vp.isActive,
+          deliverySupported: vp.deliverySupported,
+          product: selectedProducts.find(p => p.id === vp.productId)!
+        }));
+
+        onComplete(vendorProducts);
+
+        toast({
+          title: "Products configured successfully",
+          description: `${response.summary.successful} products have been added to your inventory.`,
+        });
+      } else {
+        throw new Error("Failed to add products");
+      }
     } catch (error) {
       toast({
         title: "Configuration failed",
-        description: "Failed to configure products. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to configure products. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -151,15 +166,30 @@ const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false
                 <CardTitle className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center">
-                      <Package className="h-6 w-6 text-muted-foreground" />
+                      {product.imageUrl ? (
+                        <img 
+                          src={product.imageUrl} 
+                          alt={product.name}
+                          className="w-full h-full object-cover rounded-lg"
+                          onError={(e) => {
+                            const target = e.currentTarget as HTMLImageElement;
+                            target.style.display = 'none';
+                            const nextSibling = target.nextElementSibling as HTMLElement;
+                            if (nextSibling) {
+                              nextSibling.style.display = 'flex';
+                            }
+                          }}
+                        />
+                      ) : (
+                        <Package className="h-6 w-6 text-muted-foreground" />
+                      )}
+                      <Package className="h-6 w-6 text-muted-foreground" style={{ display: 'none' }} />
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground">{product.brand_name}</p>
+                      <p className="text-sm text-muted-foreground">{product.brandName}</p>
                       <div className="flex gap-1 mt-1">
-                        {product.categories.map(cat => (
-                          <Badge key={cat.id} variant="outline" className="text-xs">{cat.name}</Badge>
-                        ))}
+                        <Badge variant="outline" className="text-xs">{product.brandName}</Badge>
                         <Badge variant="secondary" className="text-xs">UoM: {product.uom}</Badge>
                       </div>
                     </div>
@@ -178,6 +208,7 @@ const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false
                       placeholder="0.00"
                       value={productConfigs[product.id]?.mrp || ""}
                       onChange={(e) => updateProductConfig(product.id, 'mrp', parseFloat(e.target.value) || 0)}
+                      disabled={isSubmitting}
                     />
                   </div>
 
@@ -191,6 +222,7 @@ const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false
                       placeholder="0.00"
                       value={productConfigs[product.id]?.price || ""}
                       onChange={(e) => updateProductConfig(product.id, 'price', parseFloat(e.target.value) || 0)}
+                      disabled={isSubmitting}
                     />
                     {productConfigs[product.id]?.price && productConfigs[product.id]?.mrp && 
                      productConfigs[product.id]?.price! > productConfigs[product.id]?.mrp! && (
@@ -206,8 +238,9 @@ const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false
                       type="number"
                       step="0.01"
                       placeholder="0"
-                      value={productConfigs[product.id]?.stock_qty || ""}
-                      onChange={(e) => updateProductConfig(product.id, 'stock_qty', parseFloat(e.target.value) || 0)}
+                      value={productConfigs[product.id]?.stockQty || ""}
+                      onChange={(e) => updateProductConfig(product.id, 'stockQty', parseFloat(e.target.value) || 0)}
+                      disabled={isSubmitting}
                     />
                     <p className="text-xs text-muted-foreground">Per {product.uom}</p>
                   </div>
@@ -218,11 +251,12 @@ const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false
                     <div className="flex items-center space-x-2 mt-3">
                       <Switch
                         id={`delivery-${product.id}`}
-                        checked={productConfigs[product.id]?.delivery_supported || false}
-                        onCheckedChange={(checked) => updateProductConfig(product.id, 'delivery_supported', checked)}
+                        checked={productConfigs[product.id]?.deliverySupported || false}
+                        onCheckedChange={(checked) => updateProductConfig(product.id, 'deliverySupported', checked)}
+                        disabled={isSubmitting}
                       />
                       <Label htmlFor={`delivery-${product.id}`} className="text-sm">
-                        {productConfigs[product.id]?.delivery_supported ? "I provide delivery" : "DropSi handles delivery"}
+                        {productConfigs[product.id]?.deliverySupported ? "I provide delivery" : "DropSi handles delivery"}
                       </Label>
                     </div>
                   </div>
@@ -249,44 +283,40 @@ const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false
                     </div>
                   </div>
                 )}
-
-                {/* Delivery Info */}
-                <div className="mt-4 p-3 bg-muted/50 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Truck className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">
-                      {productConfigs[product.id]?.delivery_supported 
-                        ? "You will handle delivery for this product"
-                        : "DropSi will assign a delivery partner for this product"
-                      }
-                    </span>
-                  </div>
-                </div>
               </CardContent>
             </Card>
           ))}
         </div>
 
-        {/* Complete Setup Button */}
-        <div className="flex justify-center mt-8">
-          <Button 
-            onClick={handleComplete}
-            disabled={!isFormValid()}
-            size="lg"
-            className="flex items-center gap-2"
-          >
-            {isAddingToExisting ? "Add Products to Inventory" : "Complete Setup & Go to Dashboard"}
-            <ArrowRight className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {!isFormValid() && (
-          <div className="text-center mt-4">
-            <p className="text-sm text-muted-foreground">
-              Please fill all required fields and ensure selling price does not exceed MRP
-            </p>
+        {/* Action Buttons */}
+        <div className="mt-8 flex justify-between items-center">
+          {isAddingToExisting && onCancel && (
+            <Button variant="outline" onClick={onCancel} disabled={isSubmitting}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Catalog
+            </Button>
+          )}
+          
+          <div className="ml-auto">
+            <Button 
+              onClick={handleComplete} 
+              disabled={!isFormValid() || isSubmitting}
+              className="px-8"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Adding Products...
+                </>
+              ) : (
+                <>
+                  Complete Setup
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </>
+              )}
+            </Button>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

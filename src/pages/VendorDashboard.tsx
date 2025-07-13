@@ -10,42 +10,10 @@ import MainDashboard from "@/components/vendor/MainDashboard";
 import { OrderManagement } from "@/components/vendor/OrderManagement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import Loading from "@/components/ui/loading";
 import { LogOut, User, MapPin, BarChart3, Package, Tag, Bell, ShoppingCart } from "lucide-react";
-
-export type Brand = {
-  id: string;
-  name: string;
-};
-
-export type Category = {
-  id: string;
-  name: string;
-  display_order: number;
-};
-
-export type Product = {
-  id: string;
-  name: string;
-  description: string;
-  brand_id: string;
-  brand_name: string;
-  uom: string;
-  image_url: string;
-  is_active: boolean;
-  categories: Category[];
-};
-
-export type VendorProduct = {
-  id: string;
-  vendor_id: string;
-  product_id: string;
-  price: number;
-  mrp: number;
-  stock_qty: number;
-  is_active: boolean;
-  delivery_supported: boolean;
-  product: Product;
-};
+import { useAuth } from "@/contexts/AuthContext";
+import { Product, VendorProduct } from "@/lib/api";
 
 export type Discount = {
   id: string;
@@ -64,70 +32,43 @@ export type Discount = {
 export type OnboardingStep = 'catalog' | 'pricing' | 'completed';
 
 const VendorDashboard = () => {
-  const [vendor, setVendor] = useState<any>(null);
+  const { vendor, isLoading, logout } = useAuth();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('catalog');
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
-  const [vendorProducts, setVendorProducts] = useState<VendorProduct[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
-  const [isAddingProducts, setIsAddingProducts] = useState(false);
 
   const handleProductsSelected = (products: Product[]) => {
     setSelectedProducts(products);
-    if (currentStep === 'catalog') {
-      setCurrentStep('pricing');
-    } else {
-      // Adding new products to existing inventory
-      setIsAddingProducts(true);
-      setCurrentStep('pricing');
-    }
+    setCurrentStep('pricing');
   };
 
-  const handlePricingComplete = (products: VendorProduct[]) => {
-    if (isAddingProducts) {
-      // Add new products to existing inventory
-      setVendorProducts(prev => [...prev, ...products]);
-      setIsAddingProducts(false);
-      setCurrentStep('completed');
-    } else {
-      // Initial setup
-      setVendorProducts(products);
-      setCurrentStep('completed');
-    }
-  };
-
-  const handleUpdateVendorProduct = (vendorProductId: string, updates: Partial<VendorProduct>) => {
-    setVendorProducts(prev => 
-      prev.map(vp => 
-        vp.id === vendorProductId ? { ...vp, ...updates } : vp
-      )
-    );
-  };
-
-  const handleRemoveVendorProduct = (vendorProductId: string) => {
-    setVendorProducts(prev => prev.filter(vp => vp.id !== vendorProductId));
+  const handlePricingComplete = (vendorProducts: VendorProduct[]) => {
+    setCurrentStep('completed');
   };
 
   const handleAddMoreProducts = () => {
     setSelectedProducts([]);
-    setIsAddingProducts(true);
     setCurrentStep('catalog');
   };
 
-  const handleVendorUpdate = (updates: any) => {
-    setVendor(prev => ({ ...prev, ...updates }));
-  };
-
-  const handleLogout = () => {
-    setVendor(null);
+  const handleLogout = async () => {
+    await logout();
     setCurrentStep('catalog');
     setSelectedProducts([]);
-    setVendorProducts([]);
-    setIsAddingProducts(false);
   };
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-card flex items-center justify-center">
+        <Loading size="lg" text="Loading vendor dashboard..." />
+      </div>
+    );
+  }
 
   // If not authenticated, show auth form
   if (!vendor) {
-    return <VendorAuth onAuthenticated={setVendor} />;
+    return <VendorAuth />;
   }
 
   // Onboarding flow for new vendors or adding new products
@@ -135,9 +76,7 @@ const VendorDashboard = () => {
     return (
       <ProductCatalog 
         onProductsSelected={handleProductsSelected}
-        existingVendorProducts={vendorProducts}
-        isAddingToExisting={isAddingProducts}
-        onCancel={isAddingProducts ? () => setCurrentStep('completed') : undefined}
+        onCancel={undefined}
       />
     );
   }
@@ -147,8 +86,7 @@ const VendorDashboard = () => {
       <PricingSetup 
         selectedProducts={selectedProducts}
         onComplete={handlePricingComplete}
-        isAddingToExisting={isAddingProducts}
-        onCancel={isAddingProducts ? () => setCurrentStep('completed') : undefined}
+        onCancel={() => setCurrentStep('catalog')}
       />
     );
   }
@@ -170,7 +108,7 @@ const VendorDashboard = () => {
               </div>
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold font-poppins">DropSi Vendor Portal</h1>
-                <p className="text-blue-100 font-inter">Welcome back, {vendor.display_name}!</p>
+                <p className="text-blue-100 font-inter">Welcome back, {vendor.displayName}!</p>
               </div>
             </div>
             
@@ -222,28 +160,22 @@ const VendorDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-              <TabsContent value="overview">
-                <MainDashboard 
-                  vendorProducts={vendorProducts}
-                  onUpdateVendorProduct={handleUpdateVendorProduct}
-                  onRemoveVendorProduct={handleRemoveVendorProduct}
-                  onAddMoreProducts={handleAddMoreProducts}
-                />
-              </TabsContent>
-
-              <TabsContent value="orders">
-                <OrderManagement />
-              </TabsContent>
-
-          <TabsContent value="profile">
-            <VendorProfile 
-              vendor={vendor}
-              onUpdate={handleVendorUpdate}
+          <TabsContent value="overview">
+            <MainDashboard 
+              onAddMoreProducts={handleAddMoreProducts}
             />
           </TabsContent>
 
+          <TabsContent value="orders">
+            <OrderManagement />
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <VendorProfile />
+          </TabsContent>
+
           <TabsContent value="discounts">
-            <DiscountManagement vendorProducts={vendorProducts} />
+            <DiscountManagement vendorProducts={[]} />
           </TabsContent>
 
           <TabsContent value="areas">

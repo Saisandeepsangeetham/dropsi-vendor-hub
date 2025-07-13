@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,17 +9,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Package, Truck, IndianRupee, Edit, BarChart3, Settings, CheckCircle, XCircle, Tag, Plus, Trash2, Save, Percent } from "lucide-react";
-import { VendorProduct, Discount } from "@/pages/VendorDashboard";
+import { VendorProduct, ProductManager } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import Loading from "@/components/ui/loading";
 
 interface MainDashboardProps {
-  vendorProducts: VendorProduct[];
-  onUpdateVendorProduct: (vendorProductId: string, updates: Partial<VendorProduct>) => void;
-  onRemoveVendorProduct: (vendorProductId: string) => void;
   onAddMoreProducts: () => void;
 }
 
-const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorProduct, onAddMoreProducts }: MainDashboardProps) => {
+const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
+  const [vendorProducts, setVendorProducts] = useState<VendorProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [editForm, setEditForm] = useState<Partial<VendorProduct>>({});
   const [showDiscountDialog, setShowDiscountDialog] = useState(false);
@@ -35,6 +36,32 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
   });
   const { toast } = useToast();
 
+  // Load vendor products from API
+  useEffect(() => {
+    const loadVendorProducts = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const products = await ProductManager.getVendorProducts();
+        console.log('Vendor products loaded:', products); // Debug log
+        console.log('First product structure:', products[0]); // Debug log
+        setVendorProducts(products);
+      } catch (error) {
+        console.error('Error loading vendor products:', error); // Debug log
+        setError(error instanceof Error ? error.message : 'Failed to load products');
+        toast({
+          title: "Error loading products",
+          description: error instanceof Error ? error.message : "Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadVendorProducts();
+  }, [toast]);
+
   const handleEditClick = (vendorProduct: VendorProduct) => {
     setEditingProduct(vendorProduct);
     setEditForm(vendorProduct);
@@ -42,7 +69,12 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
 
   const handleSaveEdit = () => {
     if (editingProduct) {
-      onUpdateVendorProduct(editingProduct.id, editForm);
+      // TODO: Implement update API call
+      setVendorProducts(prev => 
+        prev.map(vp => 
+          vp.id === editingProduct.id ? { ...vp, ...editForm } : vp
+        )
+      );
       setEditingProduct(null);
       toast({
         title: "Product updated",
@@ -52,7 +84,12 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
   };
 
   const toggleAvailability = (vendorProductId: string, isActive: boolean) => {
-    onUpdateVendorProduct(vendorProductId, { is_active: isActive });
+    // TODO: Implement update API call
+    setVendorProducts(prev => 
+      prev.map(vp => 
+        vp.id === vendorProductId ? { ...vp, isActive } : vp
+      )
+    );
     toast({
       title: isActive ? "Product activated" : "Product deactivated",
       description: `Product is now ${isActive ? "available" : "unavailable"} for sale.`,
@@ -60,7 +97,8 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
   };
 
   const handleRemoveProduct = (vendorProductId: string, productName: string) => {
-    onRemoveVendorProduct(vendorProductId);
+    // TODO: Implement delete API call
+    setVendorProducts(prev => prev.filter(vp => vp.id !== vendorProductId));
     toast({
       title: "Product removed",
       description: `${productName} has been removed from your inventory.`,
@@ -100,15 +138,7 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
     }
 
     try {
-      // TODO: Replace with actual Supabase insert
-      // const { error } = await supabase
-      //   .from('discounts')
-      //   .insert([{
-      //     vendor_product_id: selectedVendorProduct.id,
-      //     ...newDiscount,
-      //     discounted_price: calculateDiscountedPrice(selectedVendorProduct.price, newDiscount.discount_type, newDiscount.discount_value)
-      //   }]);
-
+      // TODO: Replace with actual API call
       const discountedPrice = calculateDiscountedPrice(
         selectedVendorProduct.price,
         newDiscount.discount_type,
@@ -131,11 +161,61 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loading size="lg" text="Loading your products..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-500 mb-4">
+          <Package className="h-12 w-12 mx-auto" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Failed to load products</h3>
+        <p className="text-muted-foreground mb-4">{error}</p>
+        <Button onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
+  // Ensure vendorProducts is an array
+  if (!Array.isArray(vendorProducts)) {
+    console.error('vendorProducts is not an array:', vendorProducts);
+    return (
+      <div className="text-center py-12">
+        <div className="text-red-500 mb-4">
+          <Package className="h-12 w-12 mx-auto" />
+        </div>
+        <h3 className="text-lg font-semibold mb-2">Invalid data format</h3>
+        <p className="text-muted-foreground mb-4">Received unexpected data format from server.</p>
+        <Button onClick={() => window.location.reload()}>
+          Try Again
+        </Button>
+      </div>
+    );
+  }
+
   // Calculate dashboard metrics
   const totalProducts = vendorProducts.length;
-  const availableProducts = vendorProducts.filter(vp => vp.is_active).length;
-  const totalStock = vendorProducts.reduce((sum, vp) => sum + vp.stock_qty, 0);
-  const totalValue = vendorProducts.reduce((sum, vp) => sum + (vp.price * vp.stock_qty), 0);
+  const availableProducts = vendorProducts.filter(vp => vp.isActive).length;
+  const totalStock = vendorProducts.reduce((sum, vp) => {
+    const stockQty = typeof vp.stockQty === 'number' ? vp.stockQty : 0;
+    return sum + stockQty;
+  }, 0);
+  const totalValue = vendorProducts.reduce((sum, vp) => {
+    const price = typeof vp.price === 'number' ? vp.price : 0;
+    const stockQty = typeof vp.stockQty === 'number' ? vp.stockQty : 0;
+    return sum + (price * stockQty);
+  }, 0);
+
+  // Debug log for metrics
+  console.log('Dashboard metrics:', { totalProducts, availableProducts, totalStock, totalValue });
 
   return (
     <div className="space-y-6">
@@ -209,7 +289,11 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
             <div className="text-center py-8">
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No products configured</h3>
-              <p className="text-muted-foreground">Complete the onboarding process to add products to your inventory</p>
+              <p className="text-muted-foreground mb-4">Complete the onboarding process to add products to your inventory</p>
+              <Button onClick={onAddMoreProducts}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Your First Products
+              </Button>
             </div>
           ) : (
             <div className="space-y-4">
@@ -218,16 +302,31 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
                       <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
-                        <Package className="h-8 w-8 text-muted-foreground" />
+                        {vendorProduct.product.imageUrl ? (
+                          <img 
+                            src={vendorProduct.product.imageUrl} 
+                            alt={vendorProduct.product.name}
+                            className="w-full h-full object-cover rounded-lg"
+                            onError={(e) => {
+                              const target = e.currentTarget as HTMLImageElement;
+                              target.style.display = 'none';
+                              const nextSibling = target.nextElementSibling as HTMLElement;
+                              if (nextSibling) {
+                                nextSibling.style.display = 'flex';
+                              }
+                            }}
+                          />
+                        ) : (
+                          <Package className="h-8 w-8 text-muted-foreground" />
+                        )}
+                        <Package className="h-8 w-8 text-muted-foreground" style={{ display: 'none' }} />
                       </div>
                       
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="font-semibold text-lg">{vendorProduct.product.name}</h3>
-                          {vendorProduct.product.categories.map(category => (
-                            <Badge key={category.id} variant="secondary">{category.name}</Badge>
-                          ))}
-                          {vendorProduct.is_active ? (
+                          <Badge variant="secondary">{vendorProduct.product.brandName}</Badge>
+                          {vendorProduct.isActive ? (
                             <Badge variant="outline" className="text-success border-success">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Available
@@ -239,7 +338,7 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{vendorProduct.product.brand_name}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{vendorProduct.product.description}</p>
                         
                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
                           <div className="flex flex-col">
@@ -248,246 +347,53 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
                           </div>
                           <div className="flex flex-col">
                             <span className="text-muted-foreground text-xs">Price</span>
-                            <span className="font-semibold">₹{vendorProduct.price}</span>
+                            <span className="font-semibold text-primary">₹{vendorProduct.price}</span>
                           </div>
                           <div className="flex flex-col">
                             <span className="text-muted-foreground text-xs">Stock</span>
-                            <span className="font-semibold">{vendorProduct.stock_qty} {vendorProduct.product.uom}</span>
+                            <span className="font-semibold">{vendorProduct.stockQty} {vendorProduct.product.uom}</span>
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-muted-foreground text-xs">Delivery</span>
+                            <span className="font-semibold">
+                              {vendorProduct.deliverySupported ? "Self" : "DropSi"}
+                            </span>
                           </div>
                           <div className="flex flex-col">
                             <span className="text-muted-foreground text-xs">Value</span>
-                            <span className="font-semibold">₹{(vendorProduct.price * vendorProduct.stock_qty).toFixed(2)}</span>
-                          </div>
-                          <div className="flex flex-col col-span-2 sm:col-span-1">
-                            <span className="text-muted-foreground text-xs">Delivery</span>
-                            <div className="flex items-center gap-1">
-                              <Truck className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-sm font-medium">
-                                {vendorProduct.delivery_supported ? "Self" : "DropSi"}
-                              </span>
-                            </div>
+                            <span className="font-semibold">₹{(vendorProduct.price * vendorProduct.stockQty).toLocaleString()}</span>
                           </div>
                         </div>
                       </div>
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Dialog open={showDiscountDialog} onOpenChange={setShowDiscountDialog}>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleCreateDiscount(vendorProduct)}
-                          >
-                            <Tag className="h-4 w-4 mr-1" />
-                            Discount
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                          <DialogHeader>
-                            <DialogTitle>Create Discount for {selectedVendorProduct?.product.name}</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="discount-type">Discount Type</Label>
-                                <Select 
-                                  value={newDiscount.discount_type} 
-                                  onValueChange={(value: "percentage" | "flat") => setNewDiscount(prev => ({ ...prev, discount_type: value }))}
-                                >
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="percentage">Percentage (%)</SelectItem>
-                                    <SelectItem value="flat">Flat Amount (₹)</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label htmlFor="discount-value">
-                                  Discount Value {newDiscount.discount_type === "percentage" ? "(%)" : "(₹)"}
-                                </Label>
-                                <Input
-                                  id="discount-value"
-                                  type="number"
-                                  step="0.01"
-                                  value={newDiscount.discount_value || ""}
-                                  onChange={(e) => setNewDiscount(prev => ({ ...prev, discount_value: parseFloat(e.target.value) || 0 }))}
-                                />
-                              </div>
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="card-title">Discount Title</Label>
-                              <Input
-                                id="card-title"
-                                placeholder="e.g., Weekend Special, Flash Sale"
-                                value={newDiscount.card_title || ""}
-                                onChange={(e) => setNewDiscount(prev => ({ ...prev, card_title: e.target.value }))}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="description">Description</Label>
-                              <Textarea
-                                id="description"
-                                placeholder="Describe the discount offer"
-                                value={newDiscount.description || ""}
-                                onChange={(e) => setNewDiscount(prev => ({ ...prev, description: e.target.value }))}
-                              />
-                            </div>
-
-                            <div className="space-y-2">
-                              <Label htmlFor="terms">Terms & Conditions</Label>
-                              <Textarea
-                                id="terms"
-                                placeholder="Enter terms and conditions"
-                                value={newDiscount.terms || ""}
-                                onChange={(e) => setNewDiscount(prev => ({ ...prev, terms: e.target.value }))}
-                              />
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <Label htmlFor="start-date">Start Date & Time</Label>
-                                <Input
-                                  id="start-date"
-                                  type="datetime-local"
-                                  value={newDiscount.starts_at || ""}
-                                  onChange={(e) => setNewDiscount(prev => ({ ...prev, starts_at: e.target.value }))}
-                                />
-                              </div>
-
-                              <div className="space-y-2">
-                                <Label htmlFor="end-date">End Date & Time (Optional)</Label>
-                                <Input
-                                  id="end-date"
-                                  type="datetime-local"
-                                  value={newDiscount.ends_at || ""}
-                                  onChange={(e) => setNewDiscount(prev => ({ ...prev, ends_at: e.target.value }))}
-                                />
-                              </div>
-                            </div>
-
-                            {/* Price Preview */}
-                            {selectedVendorProduct && newDiscount.discount_value > 0 && (
-                              <div className="p-4 bg-muted rounded-lg">
-                                <h4 className="font-semibold mb-2">Price Preview</h4>
-                                <div className="grid grid-cols-3 gap-4 text-sm">
-                                  <div>
-                                    <span className="text-muted-foreground">Original Price:</span>
-                                    <span className="font-semibold ml-1">₹{selectedVendorProduct.price}</span>
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    {newDiscount.discount_type === "percentage" ? (
-                                      <Percent className="h-3 w-3" />
-                                    ) : (
-                                      <IndianRupee className="h-3 w-3" />
-                                    )}
-                                    <span className="font-medium">
-                                      {newDiscount.discount_value}{newDiscount.discount_type === "percentage" ? "%" : "₹"} off
-                                    </span>
-                                  </div>
-                                  <div>
-                                    <span className="text-muted-foreground">Final Price:</span>
-                                    <span className="font-semibold ml-1 text-success">
-                                      ₹{calculateDiscountedPrice(selectedVendorProduct.price, newDiscount.discount_type, newDiscount.discount_value).toFixed(2)}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                            <div className="flex justify-end gap-2">
-                              <Button variant="outline" onClick={() => setShowDiscountDialog(false)}>
-                                Cancel
-                              </Button>
-                              <Button onClick={handleSaveDiscount}>
-                                <Save className="h-4 w-4 mr-2" />
-                                Create Discount
-                              </Button>
-                            </div>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
+                      <Switch
+                        checked={vendorProduct.isActive}
+                        onCheckedChange={(checked) => toggleAvailability(vendorProduct.id, checked)}
+                      />
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditClick(vendorProduct)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCreateDiscount(vendorProduct)}
+                      >
+                        <Tag className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => handleRemoveProduct(vendorProduct.id, vendorProduct.product.name)}
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="text-destructive hover:text-destructive"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                      <Switch
-                        checked={vendorProduct.is_active}
-                        onCheckedChange={(checked) => toggleAvailability(vendorProduct.id, checked)}
-                      />
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEditClick(vendorProduct)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-md">
-                          <DialogHeader>
-                            <DialogTitle>Edit Product</DialogTitle>
-                          </DialogHeader>
-                          <div className="space-y-4">
-                            <div className="space-y-2">
-                              <Label htmlFor="edit-mrp">MRP (₹)</Label>
-                              <Input
-                                id="edit-mrp"
-                                type="number"
-                                step="0.01"
-                                value={editForm.mrp || ""}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, mrp: parseFloat(e.target.value) || 0 }))}
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <Label htmlFor="edit-price">Selling Price (₹)</Label>
-                              <Input
-                                id="edit-price"
-                                type="number"
-                                step="0.01"
-                                value={editForm.price || ""}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <Label htmlFor="edit-stock">Stock Quantity</Label>
-                              <Input
-                                id="edit-stock"
-                                type="number"
-                                step="0.01"
-                                value={editForm.stock_qty || ""}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, stock_qty: parseFloat(e.target.value) || 0 }))}
-                              />
-                            </div>
-                            
-                            <div className="flex items-center space-x-2">
-                              <Switch
-                                checked={editForm.delivery_supported || false}
-                                onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, delivery_supported: checked }))}
-                              />
-                              <Label className="text-sm">
-                                {editForm.delivery_supported ? "I provide delivery" : "DropSi handles delivery"}
-                              </Label>
-                            </div>
-                            
-                            <Button onClick={handleSaveEdit} className="w-full">
-                              Save Changes
-                            </Button>
-                          </div>
-                        </DialogContent>
-                      </Dialog>
                     </div>
                   </div>
                 </div>
@@ -496,6 +402,124 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Product Dialog */}
+      <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Product</DialogTitle>
+          </DialogHeader>
+          {editingProduct && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Price (₹)</Label>
+                  <Input
+                    type="number"
+                    value={editForm.price || ""}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>MRP (₹)</Label>
+                  <Input
+                    type="number"
+                    value={editForm.mrp || ""}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, mrp: parseFloat(e.target.value) || 0 }))}
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Stock Quantity</Label>
+                <Input
+                  type="number"
+                  value={editForm.stockQty || ""}
+                  onChange={(e) => setEditForm(prev => ({ ...prev, stockQty: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  checked={editForm.deliverySupported || false}
+                  onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, deliverySupported: checked }))}
+                />
+                <Label>I provide delivery</Label>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setEditingProduct(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSaveEdit}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Create Discount Dialog */}
+      <Dialog open={showDiscountDialog} onOpenChange={setShowDiscountDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Create Discount</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Discount Type</Label>
+                <Select
+                  value={newDiscount.discount_type}
+                  onValueChange={(value: "percentage" | "flat") => 
+                    setNewDiscount(prev => ({ ...prev, discount_type: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="percentage">Percentage (%)</SelectItem>
+                    <SelectItem value="flat">Flat Amount (₹)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Discount Value</Label>
+                <Input
+                  type="number"
+                  value={newDiscount.discount_value}
+                  onChange={(e) => setNewDiscount(prev => ({ ...prev, discount_value: parseFloat(e.target.value) || 0 }))}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Discount Title</Label>
+              <Input
+                value={newDiscount.card_title}
+                onChange={(e) => setNewDiscount(prev => ({ ...prev, card_title: e.target.value }))}
+                placeholder="e.g., Weekend Special"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Description</Label>
+              <Textarea
+                value={newDiscount.description}
+                onChange={(e) => setNewDiscount(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Describe the discount offer"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setShowDiscountDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveDiscount}>
+                <Save className="h-4 w-4 mr-2" />
+                Create Discount
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

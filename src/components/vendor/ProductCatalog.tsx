@@ -1,98 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Filter, Package, Truck, X, Trash2, ArrowLeft, CheckCircle } from "lucide-react";
-import { Product, VendorProduct } from "@/pages/VendorDashboard";
-
-// Mock data matching the database schema
-const SAMPLE_BRANDS = [
-  { id: "brand-1", name: "Fresh Farms" },
-  { id: "brand-2", name: "Dairy Fresh" },
-  { id: "brand-3", name: "Baker's Best" },
-  { id: "brand-4", name: "Golden Grain" },
-  { id: "brand-5", name: "Tea Garden" }
-];
-
-const SAMPLE_CATEGORIES = [
-  { id: "cat-1", name: "Fruits", display_order: 1 },
-  { id: "cat-2", name: "Vegetables", display_order: 2 },
-  { id: "cat-3", name: "Dairy", display_order: 3 },
-  { id: "cat-4", name: "Bakery", display_order: 4 },
-  { id: "cat-5", name: "Grains", display_order: 5 },
-  { id: "cat-6", name: "Beverages", display_order: 6 }
-];
-
-const SAMPLE_PRODUCTS: Product[] = [
-  {
-    id: "1",
-    name: "Organic Bananas",
-    description: "Fresh organic bananas, perfect for daily nutrition",
-    brand_id: "brand-1",
-    brand_name: "Fresh Farms",
-    uom: "kg",
-    image_url: "/api/placeholder/100/100",
-    is_active: true,
-    categories: [{ id: "cat-1", name: "Fruits", display_order: 1 }]
-  },
-  {
-    id: "2", 
-    name: "Whole Milk",
-    description: "Fresh whole milk, rich in calcium and protein",
-    brand_id: "brand-2",
-    brand_name: "Dairy Fresh",
-    uom: "litre",
-    image_url: "/api/placeholder/100/100",
-    is_active: true,
-    categories: [{ id: "cat-3", name: "Dairy", display_order: 3 }]
-  },
-  {
-    id: "3",
-    name: "Brown Bread",
-    description: "Healthy brown bread made with whole grains",
-    brand_id: "brand-3",
-    brand_name: "Baker's Best",
-    uom: "piece",
-    image_url: "/api/placeholder/100/100",
-    is_active: true,
-    categories: [{ id: "cat-4", name: "Bakery", display_order: 4 }]
-  },
-  {
-    id: "4",
-    name: "Basmati Rice",
-    description: "Premium quality basmati rice",
-    brand_id: "brand-4",
-    brand_name: "Golden Grain",
-    uom: "kg",
-    image_url: "/api/placeholder/100/100",
-    is_active: true,
-    categories: [{ id: "cat-5", name: "Grains", display_order: 5 }]
-  },
-  {
-    id: "5",
-    name: "Green Tea",
-    description: "Refreshing green tea with antioxidants",
-    brand_id: "brand-5",
-    brand_name: "Tea Garden",
-    uom: "box",
-    image_url: "/api/placeholder/100/100",
-    is_active: true,
-    categories: [{ id: "cat-6", name: "Beverages", display_order: 6 }]
-  },
-  {
-    id: "6",
-    name: "Greek Yogurt",
-    description: "Creamy Greek yogurt with probiotics",
-    brand_id: "brand-2",
-    brand_name: "Dairy Fresh",
-    uom: "cup",
-    image_url: "/api/placeholder/100/100",
-    is_active: true,
-    categories: [{ id: "cat-3", name: "Dairy", display_order: 3 }]
-  }
-];
+import { Search, Filter, Package, Truck, X, Trash2, ArrowLeft, CheckCircle, Loader2 } from "lucide-react";
+import { Product, VendorProduct, ProductManager } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import Loading from "@/components/ui/loading";
 
 interface ProductCatalogProps {
   onProductsSelected: (products: Product[]) => void;
@@ -106,21 +21,48 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   const [selectedBrand, setSelectedBrand] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   // Get existing product IDs to show them as already added
-  const existingProductIds = new Set(existingVendorProducts.map(vp => vp.product_id));
+  const existingProductIds = new Set(existingVendorProducts.map(vp => vp.productId));
 
-  const categories = ["All", ...SAMPLE_CATEGORIES.map(c => c.name)];
-  const brands = ["All", ...SAMPLE_BRANDS.map(b => b.name)];
+  // Load products from API
+  useEffect(() => {
+    const loadProducts = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const allProducts = await ProductManager.getAllProducts();
+        setProducts(allProducts);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to load products');
+        toast({
+          title: "Error loading products",
+          description: error instanceof Error ? error.message : "Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  const filteredProducts = SAMPLE_PRODUCTS.filter(product => {
-    const matchesCategory = selectedCategory === "All" || 
-      product.categories.some(cat => cat.name === selectedCategory);
-    const matchesBrand = selectedBrand === "All" || product.brand_name === selectedBrand;
+    loadProducts();
+  }, [toast]);
+
+  // Get unique categories and brands from products
+  const categories = ["All", ...Array.from(new Set(products.map(p => p.brandName)))];
+  const brands = ["All", ...Array.from(new Set(products.map(p => p.brandName)))];
+
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === "All" || product.brandName === selectedCategory;
+    const matchesBrand = selectedBrand === "All" || product.brandName === selectedBrand;
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.brandName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesBrand && matchesSearch && product.is_active;
+    return matchesCategory && matchesBrand && matchesSearch && product.isActive;
   });
 
   const handleProductToggle = (productId: string) => {
@@ -134,7 +76,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   };
 
   const handleContinue = () => {
-    const selected = SAMPLE_PRODUCTS.filter(product => selectedProducts.has(product.id));
+    const selected = products.filter(product => selectedProducts.has(product.id));
     onProductsSelected(selected);
   };
 
@@ -147,6 +89,31 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   const handleClearAll = () => {
     setSelectedProducts(new Set());
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-card flex items-center justify-center">
+        <Loading size="lg" text="Loading product catalog..." />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-card flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <Package className="h-12 w-12 mx-auto" />
+          </div>
+          <h3 className="text-lg font-semibold mb-2">Failed to load products</h3>
+          <p className="text-muted-foreground mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>
+            Try Again
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-card">
@@ -247,136 +214,122 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
           </CardContent>
         </Card>
 
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-          {filteredProducts.map(product => {
-            const isSelected = selectedProducts.has(product.id);
-            const isAlreadyAdded = existingProductIds.has(product.id);
-            
-            return (
-              <Card 
-                key={product.id} 
-                className={`shadow-card hover-lift transition-all duration-300 ${
-                  isSelected ? 'ring-2 ring-primary/50 bg-primary/5' : ''
-                } ${isAlreadyAdded ? 'opacity-60' : ''}`}
-              >
-              <CardContent className="p-4">
-                <div className="flex items-start space-x-4">
-                  {!isAlreadyAdded ? (
-                    <Checkbox
-                      checked={isSelected}
-                      onCheckedChange={() => handleProductToggle(product.id)}
-                      className="mt-1"
-                    />
-                  ) : (
-                    <div className="mt-1 flex items-center justify-center w-4 h-4">
-                      <CheckCircle className="h-5 w-5 text-success" />
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <div className="w-16 h-16 bg-muted rounded-xl mb-3 flex items-center justify-center">
-                      <Package className="h-8 w-8 text-muted-foreground" />
-                    </div>
-                    <h3 className="font-semibold text-lg mb-1 font-poppins">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">{product.brand_name}</p>
-                    <div className="flex gap-2 mb-2">
-                      {product.categories.map(category => (
-                        <Badge key={category.id} variant="secondary" className="rounded-full">{category.name}</Badge>
-                      ))}
-                    </div>
-                    <div className="mb-2">
-                      <Badge variant="outline" className="text-xs rounded-full">
-                        UoM: {product.uom}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-muted-foreground">{product.description}</p>
-                  </div>
-                  {isSelected && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleRemoveSelected(product.id)}
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          );
-          })}
-        </div>
-
-        {/* Selected Products Section */}
+        {/* Selected Products Summary */}
         {selectedProducts.size > 0 && (
           <Card className="mb-6 shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold font-poppins">Selected Products ({selectedProducts.size})</h3>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleClearAll}
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-semibold">Selected Products ({selectedProducts.size})</h3>
+                <Button variant="outline" size="sm" onClick={handleClearAll}>
+                  <X className="h-4 w-4 mr-1" />
                   Clear All
                 </Button>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {Array.from(selectedProducts).map(productId => {
-                  const product = SAMPLE_PRODUCTS.find(p => p.id === productId);
-                  if (!product) return null;
-                  
-                  return (
-                    <div key={product.id} className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                          <Package className="h-5 w-5 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{product.name}</p>
-                          <p className="text-xs text-muted-foreground">{product.brand_name}</p>
-                        </div>
-                      </div>
+              <div className="flex flex-wrap gap-2">
+                {products
+                  .filter(product => selectedProducts.has(product.id))
+                  .map(product => (
+                    <div key={product.id} className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full">
+                      <span className="text-sm">{product.name}</span>
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveSelected(product.id)}
-                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                        className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
                       >
-                        <X className="h-4 w-4" />
+                        <X className="h-3 w-3" />
                       </Button>
                     </div>
-                  );
-                })}
+                  ))}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Results Info */}
-        <div className="text-center text-muted-foreground mb-6">
-          Showing {filteredProducts.length} of {SAMPLE_PRODUCTS.length} products
+        {/* Products Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredProducts.map(product => {
+            const isSelected = selectedProducts.has(product.id);
+            const isAlreadyAdded = existingProductIds.has(product.id);
+
+            return (
+              <Card 
+                key={product.id} 
+                className={`shadow-card hover:shadow-hover transition-all duration-300 cursor-pointer ${
+                  isSelected ? 'ring-2 ring-primary' : ''
+                } ${isAlreadyAdded ? 'opacity-50' : ''}`}
+                onClick={() => !isAlreadyAdded && handleProductToggle(product.id)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
+                      <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
+                      <div className="flex items-center gap-2 mb-2">
+                        <Badge variant="outline" className="text-xs">{product.brandName}</Badge>
+                        <Badge variant="secondary" className="text-xs">UoM: {product.uom}</Badge>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isAlreadyAdded && (
+                        <Badge variant="outline" className="text-success border-success">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          Added
+                        </Badge>
+                      )}
+                      {!isAlreadyAdded && (
+                        <Checkbox
+                          checked={isSelected}
+                          onChange={() => handleProductToggle(product.id)}
+                          className="ml-2"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Product Image */}
+                  <div className="w-full h-32 bg-muted rounded-lg mb-3 flex items-center justify-center">
+                    {product.imageUrl ? (
+                      <img 
+                        src={product.imageUrl} 
+                        alt={product.name}
+                        className="w-full h-full object-cover rounded-lg"
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder.svg';
+                        }}
+                      />
+                    ) : (
+                      <Package className="h-8 w-8 text-muted-foreground" />
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Continue Button */}
         {selectedProducts.size > 0 && (
-          <div className="fixed bottom-6 right-6 z-50">
-            <Card className="shadow-large hover-lift">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="text-sm font-medium">
-                    <span className="font-semibold text-primary">{selectedProducts.size}</span> products selected
-                  </div>
-                  <Button onClick={handleContinue} className="btn-primary-modern flex items-center gap-2">
-                    Continue to Pricing
-                    <Truck className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          <div className="mt-8 text-center">
+            <Button 
+              size="lg" 
+              onClick={handleContinue}
+              className="px-8"
+            >
+              Continue with {selectedProducts.size} Product{selectedProducts.size !== 1 ? 's' : ''}
+              <Truck className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
+        )}
+
+        {/* No Products Message */}
+        {filteredProducts.length === 0 && !isLoading && (
+          <div className="text-center py-12">
+            <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No products found</h3>
+            <p className="text-muted-foreground">
+              Try adjusting your search terms or filters
+            </p>
           </div>
         )}
       </div>

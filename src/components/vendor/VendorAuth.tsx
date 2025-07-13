@@ -6,14 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, EyeOff, Package, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
-interface VendorAuthProps {
-  onAuthenticated: (vendor: any) => void;
-}
-
-const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
+const VendorAuth = () => {
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const [loginForm, setLoginForm] = useState({
     email: "",
     password: ""
@@ -24,109 +20,57 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
     legalName: "",
     displayName: "",
     phone: "",
-    gstIn: "",
-    address: ""
+    gstin: "",
+    address: "",
+    supportsOwnDelivery: false
   });
+  
   const { toast } = useToast();
+  const { login, register, isLoading } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
+    
     try {
-      // TODO: Replace with actual Supabase auth
-      // const { data, error } = await supabase.auth.signInWithPassword({
-      //   email: loginForm.email,
-      //   password: loginForm.password,
-      // });
-
-      // Mock authentication for demo
-      setTimeout(() => {
-        const mockVendor = {
-          id: "vendor-1",
-          email: loginForm.email,
-          legal_name: "Test Vendor Legal Name",
-          display_name: "Test Vendor",
-          phone: "+91 9876543210",
-          gst_in: "22AAAAA0000A1Z5",
-          address: "123 Business Street, City, State - 123456",
-          supports_own_delivery: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        onAuthenticated(mockVendor);
-        toast({
-          title: "Login successful",
-          description: "Welcome to your vendor dashboard!",
-        });
-        setIsLoading(false);
-      }, 1000);
+      await login(loginForm.email, loginForm.password);
+      toast({
+        title: "Login successful",
+        description: "Welcome to your vendor dashboard!",
+      });
     } catch (error) {
       toast({
         title: "Login failed",
-        description: "Please check your credentials and try again.",
+        description: error instanceof Error ? error.message : "Please check your credentials and try again.",
         variant: "destructive",
       });
-      setIsLoading(false);
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
-
+    
     try {
-      // TODO: Replace with actual Supabase auth and vendor creation
-      // const { data, error } = await supabase.auth.signUp({
-      //   email: signupForm.email,
-      //   password: signupForm.password,
-      // });
-
-      // if (data.user) {
-      //   const { error: vendorError } = await supabase
-      //     .from('vendors')
-      //     .insert([{
-      //       id: data.user.id,
-      //       email: signupForm.email,
-      //       legal_name: signupForm.legalName,
-      //       display_name: signupForm.displayName,
-      //       phone: signupForm.phone,
-      //       gstin: signupForm.gstin,
-      //       address: signupForm.address,
-      //       delivery_capability: true
-      //     }]);
-      // }
-
-      // Mock signup for demo
-      setTimeout(() => {
-        const mockVendor = {
-          id: "vendor-new",
-          email: signupForm.email,
-          legal_name: signupForm.legalName,
-          display_name: signupForm.displayName,
-          phone: signupForm.phone,
-          gst_in: signupForm.gstIn,
-          address: signupForm.address,
-          supports_own_delivery: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        onAuthenticated(mockVendor);
-        toast({
-          title: "Account created successfully",
-          description: "Welcome to DropSi vendor portal!",
-        });
-        setIsLoading(false);
-      }, 1000);
+      await register({
+        legalName: signupForm.legalName,
+        displayName: signupForm.displayName,
+        email: signupForm.email,
+        password: signupForm.password,
+        phone: signupForm.phone || undefined,
+        gstin: signupForm.gstin || undefined,
+        address: signupForm.address || undefined,
+        supportsOwnDelivery: signupForm.supportsOwnDelivery
+      });
+      
+      toast({
+        title: "Account created successfully",
+        description: "Welcome to DropSi vendor portal!",
+      });
     } catch (error) {
       toast({
         title: "Signup failed",
-        description: "Please try again or contact support.",
+        description: error instanceof Error ? error.message : "Please try again or contact support.",
         variant: "destructive",
       });
-      setIsLoading(false);
     }
   };
 
@@ -170,6 +114,7 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                       value={loginForm.email}
                       onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
                       required
+                      disabled={isLoading}
                     />
                   </div>
 
@@ -183,6 +128,7 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                         value={loginForm.password}
                         onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
                         required
+                        disabled={isLoading}
                       />
                       <Button
                         type="button"
@@ -190,6 +136,7 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
@@ -213,6 +160,7 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                         value={signupForm.legalName}
                         onChange={(e) => setSignupForm(prev => ({ ...prev, legalName: e.target.value }))}
                         required
+                        disabled={isLoading}
                       />
                     </div>
                     <div className="space-y-2">
@@ -223,6 +171,7 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                         value={signupForm.displayName}
                         onChange={(e) => setSignupForm(prev => ({ ...prev, displayName: e.target.value }))}
                         required
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
@@ -236,6 +185,7 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                       value={signupForm.email}
                       onChange={(e) => setSignupForm(prev => ({ ...prev, email: e.target.value }))}
                       required
+                      disabled={isLoading}
                     />
                   </div>
 
@@ -249,6 +199,7 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                         value={signupForm.password}
                         onChange={(e) => setSignupForm(prev => ({ ...prev, password: e.target.value }))}
                         required
+                        disabled={isLoading}
                       />
                       <Button
                         type="button"
@@ -256,6 +207,7 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                         size="sm"
                         className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                         onClick={() => setShowPassword(!showPassword)}
+                        disabled={isLoading}
                       >
                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
@@ -270,17 +222,17 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                         placeholder="+91 9876543210"
                         value={signupForm.phone}
                         onChange={(e) => setSignupForm(prev => ({ ...prev, phone: e.target.value }))}
-                        required
+                        disabled={isLoading}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="gst-in">GSTIN</Label>
+                      <Label htmlFor="gstin">GSTIN</Label>
                       <Input
-                        id="gst-in"
+                        id="gstin"
                         placeholder="22AAAAA0000A1Z5"
-                        value={signupForm.gstIn}
-                        onChange={(e) => setSignupForm(prev => ({ ...prev, gstIn: e.target.value }))}
-                        required
+                        value={signupForm.gstin}
+                        onChange={(e) => setSignupForm(prev => ({ ...prev, gstin: e.target.value }))}
+                        disabled={isLoading}
                       />
                     </div>
                   </div>
@@ -289,11 +241,24 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                     <Label htmlFor="address">Business Address</Label>
                     <Input
                       id="address"
-                      placeholder="Complete business address"
+                      placeholder="123 Business Street, City, State - 123456"
                       value={signupForm.address}
                       onChange={(e) => setSignupForm(prev => ({ ...prev, address: e.target.value }))}
-                      required
+                      disabled={isLoading}
                     />
+                  </div>
+
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      id="supports-delivery"
+                      checked={signupForm.supportsOwnDelivery}
+                      onChange={(e) => setSignupForm(prev => ({ ...prev, supportsOwnDelivery: e.target.checked }))}
+                      disabled={isLoading}
+                    />
+                    <Label htmlFor="supports-delivery" className="text-sm">
+                      I provide my own delivery service
+                    </Label>
                   </div>
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
@@ -304,20 +269,6 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
             </Tabs>
           </CardContent>
         </Card>
-
-        {/* Features */}
-        <div className="mt-8 grid grid-cols-2 gap-4 text-center">
-          <div className="p-4 bg-card rounded-lg shadow-card">
-            <Package className="h-8 w-8 text-primary mx-auto mb-2" />
-            <h3 className="font-semibold text-sm">Product Catalog</h3>
-            <p className="text-xs text-muted-foreground">Choose from 1000+ products</p>
-          </div>
-          <div className="p-4 bg-card rounded-lg shadow-card">
-            <Truck className="h-8 w-8 text-primary mx-auto mb-2" />
-            <h3 className="font-semibold text-sm">Delivery Support</h3>
-            <p className="text-xs text-muted-foreground">We handle logistics for you</p>
-          </div>
-        </div>
       </div>
     </div>
   );
