@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Filter, Package, Truck, X, Trash2 } from "lucide-react";
-import { Product } from "@/pages/VendorDashboard";
+import { Search, Filter, Package, Truck, X, Trash2, ArrowLeft } from "lucide-react";
+import { Product, VendorProduct } from "@/pages/VendorDashboard";
 
 // Mock data matching the database schema
 const SAMPLE_BRANDS = [
@@ -96,13 +96,19 @@ const SAMPLE_PRODUCTS: Product[] = [
 
 interface ProductCatalogProps {
   onProductsSelected: (products: Product[]) => void;
+  existingVendorProducts?: VendorProduct[];
+  isAddingToExisting?: boolean;
+  onCancel?: () => void;
 }
 
-const ProductCatalog = ({ onProductsSelected }: ProductCatalogProps) => {
+const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAddingToExisting = false, onCancel }: ProductCatalogProps) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedBrand, setSelectedBrand] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+
+  // Get existing product IDs to show them as already added
+  const existingProductIds = new Set(existingVendorProducts.map(vp => vp.product_id));
 
   const categories = ["All", ...SAMPLE_CATEGORIES.map(c => c.name)];
   const brands = ["All", ...SAMPLE_BRANDS.map(b => b.name)];
@@ -147,17 +153,34 @@ const ProductCatalog = ({ onProductsSelected }: ProductCatalogProps) => {
       {/* Header */}
       <div className="bg-gradient-primary text-white p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-full overflow-hidden">
-              <img 
-                src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
-                alt="DropSi Logo" 
-                className="w-full h-full object-cover"
-              />
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 mb-2">
+              {isAddingToExisting && onCancel && (
+                <Button variant="secondary" size="sm" onClick={onCancel} className="mr-2">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              )}
+              <div className="w-10 h-10 rounded-full overflow-hidden">
+                <img 
+                  src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
+                  alt="DropSi Logo" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold">
+                  {isAddingToExisting ? "Add More Products" : "DropSi Vendor Portal"}
+                </h1>
+                <p className="text-blue-100">
+                  {isAddingToExisting 
+                    ? "Select additional products to add to your inventory" 
+                    : "Select products from our standardized catalog to start selling"
+                  }
+                </p>
+              </div>
             </div>
-            <h1 className="text-3xl font-bold">DropSi Vendor Portal</h1>
           </div>
-          <p className="text-blue-100">Select products from our standardized catalog to start selling</p>
         </div>
       </div>
 
@@ -221,21 +244,28 @@ const ProductCatalog = ({ onProductsSelected }: ProductCatalogProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
           {filteredProducts.map(product => {
             const isSelected = selectedProducts.has(product.id);
+            const isAlreadyAdded = existingProductIds.has(product.id);
             
             return (
               <Card 
                 key={product.id} 
                 className={`shadow-card hover-lift transition-all duration-300 ${
                   isSelected ? 'ring-2 ring-primary/50 bg-primary/5' : ''
-                }`}
+                } ${isAlreadyAdded ? 'opacity-60' : ''}`}
               >
               <CardContent className="p-4">
                 <div className="flex items-start space-x-4">
-                  <Checkbox
-                    checked={isSelected}
-                    onCheckedChange={() => handleProductToggle(product.id)}
-                    className="mt-1"
-                  />
+                  {!isAlreadyAdded ? (
+                    <Checkbox
+                      checked={isSelected}
+                      onCheckedChange={() => handleProductToggle(product.id)}
+                      className="mt-1"
+                    />
+                  ) : (
+                    <div className="mt-1 w-4 h-4 flex items-center justify-center">
+                      <Badge variant="default" className="text-xs px-2 py-1">Added</Badge>
+                    </div>
+                  )}
                   <div className="flex-1">
                     <div className="w-16 h-16 bg-muted rounded-xl mb-3 flex items-center justify-center">
                       <Package className="h-8 w-8 text-muted-foreground" />

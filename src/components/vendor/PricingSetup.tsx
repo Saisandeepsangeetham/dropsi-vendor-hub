@@ -5,16 +5,18 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Package, Truck, IndianRupee, ArrowRight } from "lucide-react";
+import { Package, Truck, IndianRupee, ArrowRight, ArrowLeft } from "lucide-react";
 import { Product, VendorProduct } from "@/pages/VendorDashboard";
 import { useToast } from "@/hooks/use-toast";
 
 interface PricingSetupProps {
   selectedProducts: Product[];
   onComplete: (vendorProducts: VendorProduct[]) => void;
+  isAddingToExisting?: boolean;
+  onCancel?: () => void;
 }
 
-const PricingSetup = ({ selectedProducts, onComplete }: PricingSetupProps) => {
+const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false, onCancel }: PricingSetupProps) => {
   const [productConfigs, setProductConfigs] = useState<Record<string, Partial<VendorProduct>>>(
     selectedProducts.reduce((acc, product) => ({
       ...acc,
@@ -109,11 +111,28 @@ const PricingSetup = ({ selectedProducts, onComplete }: PricingSetupProps) => {
       {/* Header */}
       <div className="bg-gradient-primary text-white p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-3 mb-2">
-            <IndianRupee className="h-8 w-8" />
-            <h1 className="text-3xl font-bold">Pricing Setup</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3 mb-2">
+              {isAddingToExisting && onCancel && (
+                <Button variant="secondary" size="sm" onClick={onCancel} className="mr-2">
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back to Dashboard
+                </Button>
+              )}
+              <IndianRupee className="h-8 w-8" />
+              <div>
+                <h1 className="text-3xl font-bold">
+                  {isAddingToExisting ? "Configure New Products" : "Pricing Setup"}
+                </h1>
+                <p className="text-blue-100">
+                  {isAddingToExisting 
+                    ? "Configure pricing, stock, and delivery for your new products" 
+                    : "Configure pricing, capacity, and stock for your selected products"
+                  }
+                </p>
+              </div>
+            </div>
           </div>
-          <p className="text-blue-100">Configure pricing, stock, and delivery for your selected products</p>
         </div>
       </div>
 
@@ -249,7 +268,7 @@ const PricingSetup = ({ selectedProducts, onComplete }: PricingSetupProps) => {
             size="lg"
             className="flex items-center gap-2"
           >
-            Complete Setup & Go to Dashboard
+            {isAddingToExisting ? "Add Products to Inventory" : "Complete Setup & Go to Dashboard"}
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>

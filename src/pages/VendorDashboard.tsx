@@ -68,15 +68,30 @@ const VendorDashboard = () => {
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [vendorProducts, setVendorProducts] = useState<VendorProduct[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
+  const [isAddingProducts, setIsAddingProducts] = useState(false);
 
   const handleProductsSelected = (products: Product[]) => {
     setSelectedProducts(products);
-    setCurrentStep('pricing');
+    if (currentStep === 'catalog') {
+      setCurrentStep('pricing');
+    } else {
+      // Adding new products to existing inventory
+      setIsAddingProducts(true);
+      setCurrentStep('pricing');
+    }
   };
 
   const handlePricingComplete = (products: VendorProduct[]) => {
-    setVendorProducts(products);
-    setCurrentStep('completed');
+    if (isAddingProducts) {
+      // Add new products to existing inventory
+      setVendorProducts(prev => [...prev, ...products]);
+      setIsAddingProducts(false);
+      setCurrentStep('completed');
+    } else {
+      // Initial setup
+      setVendorProducts(products);
+      setCurrentStep('completed');
+    }
   };
 
   const handleUpdateVendorProduct = (vendorProductId: string, updates: Partial<VendorProduct>) => {
@@ -85,6 +100,16 @@ const VendorDashboard = () => {
         vp.id === vendorProductId ? { ...vp, ...updates } : vp
       )
     );
+  };
+
+  const handleRemoveVendorProduct = (vendorProductId: string) => {
+    setVendorProducts(prev => prev.filter(vp => vp.id !== vendorProductId));
+  };
+
+  const handleAddMoreProducts = () => {
+    setSelectedProducts([]);
+    setIsAddingProducts(true);
+    setCurrentStep('catalog');
   };
 
   const handleVendorUpdate = (updates: any) => {
@@ -96,6 +121,7 @@ const VendorDashboard = () => {
     setCurrentStep('catalog');
     setSelectedProducts([]);
     setVendorProducts([]);
+    setIsAddingProducts(false);
   };
 
   // If not authenticated, show auth form
@@ -103,11 +129,14 @@ const VendorDashboard = () => {
     return <VendorAuth onAuthenticated={setVendor} />;
   }
 
-  // Onboarding flow for new vendors
+  // Onboarding flow for new vendors or adding new products
   if (currentStep === 'catalog') {
     return (
       <ProductCatalog 
         onProductsSelected={handleProductsSelected}
+        existingVendorProducts={vendorProducts}
+        isAddingToExisting={isAddingProducts}
+        onCancel={isAddingProducts ? () => setCurrentStep('completed') : undefined}
       />
     );
   }
@@ -117,6 +146,8 @@ const VendorDashboard = () => {
       <PricingSetup 
         selectedProducts={selectedProducts}
         onComplete={handlePricingComplete}
+        isAddingToExisting={isAddingProducts}
+        onCancel={isAddingProducts ? () => setCurrentStep('completed') : undefined}
       />
     );
   }
@@ -178,6 +209,8 @@ const VendorDashboard = () => {
             <MainDashboard 
               vendorProducts={vendorProducts}
               onUpdateVendorProduct={handleUpdateVendorProduct}
+              onRemoveVendorProduct={handleRemoveVendorProduct}
+              onAddMoreProducts={handleAddMoreProducts}
             />
           </TabsContent>
 

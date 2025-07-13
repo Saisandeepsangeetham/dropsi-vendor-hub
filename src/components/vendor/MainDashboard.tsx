@@ -6,16 +6,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Package, Truck, IndianRupee, Edit, BarChart3, Settings, CheckCircle, XCircle, Tag, Plus } from "lucide-react";
+import { Package, Truck, IndianRupee, Edit, BarChart3, Settings, CheckCircle, XCircle, Tag, Plus, Trash2 } from "lucide-react";
 import { VendorProduct, Discount } from "@/pages/VendorDashboard";
 import { useToast } from "@/hooks/use-toast";
 
 interface MainDashboardProps {
   vendorProducts: VendorProduct[];
   onUpdateVendorProduct: (vendorProductId: string, updates: Partial<VendorProduct>) => void;
+  onRemoveVendorProduct: (vendorProductId: string) => void;
+  onAddMoreProducts: () => void;
 }
 
-const MainDashboard = ({ vendorProducts, onUpdateVendorProduct }: MainDashboardProps) => {
+const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorProduct, onAddMoreProducts }: MainDashboardProps) => {
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [editForm, setEditForm] = useState<Partial<VendorProduct>>({});
   const [discounts, setDiscounts] = useState<Discount[]>([]);
@@ -44,6 +46,14 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct }: MainDashboardP
     toast({
       title: isActive ? "Product activated" : "Product deactivated",
       description: `Product is now ${isActive ? "available" : "unavailable"} for sale.`,
+    });
+  };
+
+  const handleRemoveProduct = (vendorProductId: string, productName: string) => {
+    onRemoveVendorProduct(vendorProductId);
+    toast({
+      title: "Product removed",
+      description: `${productName} has been removed from your inventory.`,
     });
   };
 
@@ -114,9 +124,15 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct }: MainDashboardP
       {/* Products List */}
       <Card className="shadow-card">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="h-5 w-5" />
-            Your Products Inventory
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Package className="h-5 w-5" />
+              Your Products Inventory
+            </div>
+            <Button onClick={onAddMoreProducts} className="flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              Add More Products
+            </Button>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -191,6 +207,14 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct }: MainDashboardP
                       >
                         <Tag className="h-4 w-4 mr-1" />
                         Discount
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRemoveProduct(vendorProduct.id, vendorProduct.product.name)}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                       <Switch
                         checked={vendorProduct.is_active}
