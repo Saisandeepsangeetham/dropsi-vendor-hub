@@ -7,9 +7,10 @@ import DiscountManagement from "@/components/vendor/DiscountManagement";
 import ProductCatalog from "@/components/vendor/ProductCatalog";
 import PricingSetup from "@/components/vendor/PricingSetup";
 import MainDashboard from "@/components/vendor/MainDashboard";
+import { OrderManagement } from "@/components/vendor/OrderManagement";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, MapPin, BarChart3, Package, Tag, Bell } from "lucide-react";
+import { LogOut, User, MapPin, BarChart3, Package, Tag, Bell, ShoppingCart } from "lucide-react";
 
 export type Brand = {
   id: string;
@@ -194,10 +195,14 @@ const VendorDashboard = () => {
 
       <div className="max-w-7xl mx-auto p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5 mb-6">
+          <TabsList className="grid w-full grid-cols-6 mb-6">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               Overview
+            </TabsTrigger>
+            <TabsTrigger value="orders" className="flex items-center gap-2">
+              <ShoppingCart className="h-4 w-4" />
+              Orders
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -217,14 +222,18 @@ const VendorDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="overview">
-            <MainDashboard 
-              vendorProducts={vendorProducts}
-              onUpdateVendorProduct={handleUpdateVendorProduct}
-              onRemoveVendorProduct={handleRemoveVendorProduct}
-              onAddMoreProducts={handleAddMoreProducts}
-            />
-          </TabsContent>
+              <TabsContent value="overview">
+                <MainDashboard 
+                  vendorProducts={vendorProducts}
+                  onUpdateVendorProduct={handleUpdateVendorProduct}
+                  onRemoveVendorProduct={handleRemoveVendorProduct}
+                  onAddMoreProducts={handleAddMoreProducts}
+                />
+              </TabsContent>
+
+              <TabsContent value="orders">
+                <OrderManagement />
+              </TabsContent>
 
           <TabsContent value="profile">
             <VendorProfile 
