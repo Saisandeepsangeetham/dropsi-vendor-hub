@@ -1,10 +1,10 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Vendor, AuthManager } from '@/lib/api';
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { AuthManager, Vendor, ProductManager } from "@/lib/api";
 
 interface AuthContextType {
   vendor: Vendor | null;
   isLoading: boolean;
-  isAuthenticated: boolean;
+  isNewVendor: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (vendorData: {
     legalName: string;
@@ -17,7 +17,8 @@ interface AuthContextType {
     supportsOwnDelivery?: boolean;
   }) => Promise<void>;
   logout: () => Promise<void>;
-  updateVendor: (updates: Partial<Vendor>) => Promise<void>;
+  updateProfile: (updates: Partial<Vendor>) => Promise<void>;
+  completeOnboarding: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,34 +26,38 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
 
 interface AuthProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isNewVendor, setIsNewVendor] = useState(false);
 
-  // Check for existing authentication on app load
   useEffect(() => {
     const initializeAuth = async () => {
       try {
-        // Check if user is already authenticated
-        const storedVendor = AuthManager.getStoredVendor();
-        if (storedVendor && AuthManager.isAuthenticated()) {
-          // Verify token is still valid
-          const currentVendor = await AuthManager.getCurrentVendor();
-          if (currentVendor) {
-            setVendor(currentVendor);
+        const currentVendor = await AuthManager.getCurrentVendor();
+        if (currentVendor) {
+          setVendor(currentVendor);
+          
+          // Check if vendor has products - if not, they need onboarding
+          try {
+            const vendorProducts = await ProductManager.getVendorProducts();
+            setIsNewVendor(vendorProducts.length === 0);
+          } catch (error) {
+            // If we can't fetch products, assume they need onboarding
+            setIsNewVendor(true);
           }
         }
       } catch (error) {
-        console.error('Auth initialization error:', error);
+        console.error("Auth initialization error:", error);
       } finally {
         setIsLoading(false);
       }
@@ -66,6 +71,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       const vendorData = await AuthManager.login(email, password);
       setVendor(vendorData);
+      
+      // Check if vendor has products - if not, they need onboarding
+      try {
+        const vendorProducts = await ProductManager.getVendorProducts();
+        setIsNewVendor(vendorProducts.length === 0);
+      } catch (error) {
+        // If we can't fetch products, assume they need onboarding
+        setIsNewVendor(true);
+      }
     } catch (error) {
       throw error;
     } finally {
@@ -87,6 +101,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setIsLoading(true);
       const newVendor = await AuthManager.register(vendorData);
       setVendor(newVendor);
+      setIsNewVendor(true); // New vendor just signed up
     } catch (error) {
       throw error;
     } finally {
@@ -96,41 +111,37 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = async () => {
     try {
-      setIsLoading(true);
       await AuthManager.logout();
       setVendor(null);
+      setIsNewVendor(false);
     } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setIsLoading(false);
+      console.error("Logout error:", error);
     }
   };
 
-  const updateVendor = async (updates: Partial<Vendor>) => {
+  const updateProfile = async (updates: Partial<Vendor>) => {
     try {
-      setIsLoading(true);
       const updatedVendor = await AuthManager.updateVendorProfile(updates);
       setVendor(updatedVendor);
     } catch (error) {
       throw error;
-    } finally {
-      setIsLoading(false);
     }
   };
 
-  const value: AuthContextType = {
+  const completeOnboarding = () => {
+    setIsNewVendor(false);
+  };
+
+  const value = {
     vendor,
     isLoading,
-    isAuthenticated: !!vendor,
+    isNewVendor,
     login,
     register,
     logout,
-    updateVendor,
+    updateProfile,
+    completeOnboarding,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }; 

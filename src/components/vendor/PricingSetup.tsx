@@ -9,6 +9,7 @@ import { Package, Truck, IndianRupee, ArrowRight, ArrowLeft, Loader2 } from "luc
 import { Product, VendorProduct, ProductManager } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import Loading from "@/components/ui/loading";
+import { toTitleCase } from "@/lib/utils";
 
 interface PricingSetupProps {
   selectedProducts: Product[];
@@ -186,7 +187,7 @@ const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false
                       <Package className="h-6 w-6 text-muted-foreground" style={{ display: 'none' }} />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold">{product.name}</h3>
+                      <h3 className="text-lg font-semibold">{toTitleCase(product.name)}</h3>
                       <p className="text-sm text-muted-foreground">{product.brandName}</p>
                       <div className="flex gap-1 mt-1">
                         <Badge variant="outline" className="text-xs">{product.brandName}</Badge>

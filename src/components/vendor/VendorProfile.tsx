@@ -12,7 +12,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import React from "react";
 
 const VendorProfile = () => {
-  const { vendor, updateVendor, isLoading } = useAuth();
+  const { vendor, updateProfile, isLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     legalName: vendor?.legalName || "",
@@ -42,7 +42,7 @@ const VendorProfile = () => {
 
   const handleSave = async () => {
     try {
-      await updateVendor(editForm);
+      await updateProfile(editForm);
       setIsEditing(false);
       toast({
         title: "Profile updated",

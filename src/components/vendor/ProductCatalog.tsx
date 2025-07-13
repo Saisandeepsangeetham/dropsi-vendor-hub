@@ -8,6 +8,7 @@ import { Search, Filter, Package, Truck, X, Trash2, ArrowLeft, CheckCircle, Load
 import { Product, VendorProduct, ProductManager } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import Loading from "@/components/ui/loading";
+import { toTitleCase } from "@/lib/utils";
 
 interface ProductCatalogProps {
   onProductsSelected: (products: Product[]) => void;
@@ -230,7 +231,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                   .filter(product => selectedProducts.has(product.id))
                   .map(product => (
                     <div key={product.id} className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full">
-                      <span className="text-sm">{product.name}</span>
+                      <span className="text-sm">{toTitleCase(product.name)}</span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -263,7 +264,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between mb-3">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
+                      <h3 className="font-semibold text-lg mb-1">{toTitleCase(product.name)}</h3>
                       <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
                       <div className="flex items-center gap-2 mb-2">
                         <Badge variant="outline" className="text-xs">{product.brandName}</Badge>

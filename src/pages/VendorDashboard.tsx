@@ -32,7 +32,7 @@ export type Discount = {
 export type OnboardingStep = 'catalog' | 'pricing' | 'completed';
 
 const VendorDashboard = () => {
-  const { vendor, isLoading, logout } = useAuth();
+  const { vendor, isLoading, isNewVendor, logout, completeOnboarding } = useAuth();
   const [currentStep, setCurrentStep] = useState<OnboardingStep>('catalog');
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [activeTab, setActiveTab] = useState("overview");
@@ -44,6 +44,7 @@ const VendorDashboard = () => {
 
   const handlePricingComplete = (vendorProducts: VendorProduct[]) => {
     setCurrentStep('completed');
+    completeOnboarding(); // Mark onboarding as completed
   };
 
   const handleAddMoreProducts = () => {
@@ -71,8 +72,8 @@ const VendorDashboard = () => {
     return <VendorAuth />;
   }
 
-  // Onboarding flow for new vendors or adding new products
-  if (currentStep === 'catalog') {
+  // Onboarding flow for NEW vendors only (not for existing vendors logging in)
+  if (isNewVendor && currentStep === 'catalog') {
     return (
       <ProductCatalog 
         onProductsSelected={handleProductsSelected}
@@ -81,7 +82,7 @@ const VendorDashboard = () => {
     );
   }
 
-  if (currentStep === 'pricing') {
+  if (isNewVendor && currentStep === 'pricing') {
     return (
       <PricingSetup 
         selectedProducts={selectedProducts}
@@ -91,7 +92,7 @@ const VendorDashboard = () => {
     );
   }
 
-  // Main vendor dashboard with tabs
+  // Main vendor dashboard with tabs (for both new vendors after onboarding and existing vendors)
   return (
     <div className="min-h-screen bg-gradient-card">
       {/* Header */}

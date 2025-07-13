@@ -8,10 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Package, Truck, IndianRupee, Edit, BarChart3, Settings, CheckCircle, XCircle, Tag, Plus, Trash2, Save, Percent } from "lucide-react";
-import { VendorProduct, ProductManager } from "@/lib/api";
+import { Package, Truck, IndianRupee, Edit, BarChart3, Settings, CheckCircle, XCircle, Tag, Plus, Trash2, Save, Percent, X, ArrowRight, Loader2 } from "lucide-react";
+import { VendorProduct, ProductManager, Product } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import Loading from "@/components/ui/loading";
+import { toTitleCase } from "@/lib/utils";
 
 interface MainDashboardProps {
   onAddMoreProducts: () => void;
@@ -34,6 +35,34 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
     starts_at: "",
     ends_at: ""
   });
+
+  // Add More Products Modal State
+  const [showAddProductsModal, setShowAddProductsModal] = useState(false);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [productConfigs, setProductConfigs] = useState<Record<string, {
+    price: number;
+    mrp: number;
+    stockQty: number;
+    deliverySupported: boolean;
+  }>>({});
+  const [isAddingProducts, setIsAddingProducts] = useState(false);
+  const [addProductsStep, setAddProductsStep] = useState<'catalog' | 'pricing'>('catalog');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+
+  // Extract unique categories from allProducts
+  const categories = [
+    "All",
+    ...Array.from(
+      new Set(
+        allProducts
+          .map((p) => (p as any).category || (p as any).categories?.[0] || "")
+          .filter((cat) => !!cat)
+      )
+    ),
+  ];
+
   const { toast } = useToast();
 
   // Load vendor products from API
@@ -62,47 +91,226 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
     loadVendorProducts();
   }, [toast]);
 
+  // Load all available products for the modal
+  const loadAllProducts = async () => {
+    try {
+      const products = await ProductManager.getAllProducts();
+      setAllProducts(products);
+    } catch (error) {
+      toast({
+        title: "Error loading products",
+        description: "Failed to load product catalog.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleAddMoreProducts = () => {
+    setShowAddProductsModal(true);
+    setSelectedProducts(new Set());
+    setProductConfigs({});
+    setAddProductsStep('catalog');
+    setSearchTerm(""); // Reset search term
+    loadAllProducts();
+  };
+
+  const handleProductSelection = (productId: string) => {
+    const newSelected = new Set(selectedProducts);
+    if (newSelected.has(productId)) {
+      newSelected.delete(productId);
+      const newConfigs = { ...productConfigs };
+      delete newConfigs[productId];
+      setProductConfigs(newConfigs);
+    } else {
+      newSelected.add(productId);
+      setProductConfigs(prev => ({
+        ...prev,
+        [productId]: {
+          price: 0,
+          mrp: 0,
+          stockQty: 0,
+          deliverySupported: false
+        }
+      }));
+    }
+    setSelectedProducts(newSelected);
+  };
+
+  const handleContinueToPricing = () => {
+    if (selectedProducts.size === 0) {
+      toast({
+        title: "No products selected",
+        description: "Please select at least one product to continue.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setAddProductsStep('pricing');
+  };
+
+  const handleUpdateProductConfig = (productId: string, field: string, value: any) => {
+    setProductConfigs(prev => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        [field]: value
+      }
+    }));
+  };
+
+  const isPricingFormValid = () => {
+    return Array.from(selectedProducts).every(productId => {
+      const config = productConfigs[productId];
+      return config?.price && config.price > 0 && 
+             config?.mrp && config.mrp > 0 &&
+             config?.stockQty && config.stockQty > 0 &&
+             config.mrp >= config.price;
+    });
+  };
+
+  const handleAddProducts = async () => {
+    if (!isPricingFormValid()) {
+      toast({
+        title: "Invalid configuration",
+        description: "Please ensure all fields are filled and MRP is greater than or equal to selling price.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsAddingProducts(true);
+
+      const productsToAdd = Array.from(selectedProducts).map(productId => {
+        const config = productConfigs[productId];
+        return {
+          productId,
+          price: config.price,
+          mrp: config.mrp,
+          stockQty: config.stockQty,
+          deliverySupported: config.deliverySupported
+        };
+      });
+
+      const response = await ProductManager.bulkAddProducts(productsToAdd);
+
+      if (response.success) {
+        // Refresh vendor products
+        const updatedProducts = await ProductManager.getVendorProducts();
+        setVendorProducts(updatedProducts);
+
+        setShowAddProductsModal(false);
+        setSelectedProducts(new Set());
+        setProductConfigs({});
+        setAddProductsStep('catalog');
+
+        toast({
+          title: "Products added successfully",
+          description: `${response.summary.successful} products have been added to your inventory.`,
+        });
+      } else {
+        throw new Error("Failed to add products");
+      }
+    } catch (error) {
+      toast({
+        title: "Failed to add products",
+        description: error instanceof Error ? error.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingProducts(false);
+    }
+  };
+
   const handleEditClick = (vendorProduct: VendorProduct) => {
     setEditingProduct(vendorProduct);
     setEditForm(vendorProduct);
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     if (editingProduct) {
-      // TODO: Implement update API call
-      setVendorProducts(prev => 
-        prev.map(vp => 
-          vp.id === editingProduct.id ? { ...vp, ...editForm } : vp
-        )
-      );
-      setEditingProduct(null);
+      try {
+        const response = await ProductManager.updateVendorProduct(editingProduct.id, editForm);
+        
+        if (response.success) {
+          // Update the local state with the updated product, preserving the product information
+          setVendorProducts(prev => 
+            prev.map(vp => 
+              vp.id === editingProduct.id ? {
+                ...response.vendorProduct,
+                product: vp.product // Preserve the existing product information
+              } : vp
+            )
+          );
+          setEditingProduct(null);
+          toast({
+            title: "Product updated",
+            description: "Product details have been updated successfully.",
+          });
+        } else {
+          throw new Error("Failed to update product");
+        }
+      } catch (error) {
+        toast({
+          title: "Update failed",
+          description: error instanceof Error ? error.message : "Failed to update product. Please try again.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const toggleAvailability = async (vendorProductId: string, isActive: boolean) => {
+    try {
+      const response = await ProductManager.updateVendorProduct(vendorProductId, { isActive });
+      
+      if (response.success) {
+        // Update the local state, preserving the product information
+        setVendorProducts(prev => 
+          prev.map(vp => 
+            vp.id === vendorProductId ? {
+              ...response.vendorProduct,
+              product: vp.product // Preserve the existing product information
+            } : vp
+          )
+        );
+        toast({
+          title: isActive ? "Product activated" : "Product deactivated",
+          description: `Product is now ${isActive ? "available" : "unavailable"} for sale.`,
+        });
+      } else {
+        throw new Error("Failed to update product availability");
+      }
+    } catch (error) {
       toast({
-        title: "Product updated",
-        description: "Product details have been updated successfully.",
+        title: "Update failed",
+        description: error instanceof Error ? error.message : "Failed to update product availability.",
+        variant: "destructive",
       });
     }
   };
 
-  const toggleAvailability = (vendorProductId: string, isActive: boolean) => {
-    // TODO: Implement update API call
-    setVendorProducts(prev => 
-      prev.map(vp => 
-        vp.id === vendorProductId ? { ...vp, isActive } : vp
-      )
-    );
-    toast({
-      title: isActive ? "Product activated" : "Product deactivated",
-      description: `Product is now ${isActive ? "available" : "unavailable"} for sale.`,
-    });
-  };
-
-  const handleRemoveProduct = (vendorProductId: string, productName: string) => {
-    // TODO: Implement delete API call
-    setVendorProducts(prev => prev.filter(vp => vp.id !== vendorProductId));
-    toast({
-      title: "Product removed",
-      description: `${productName} has been removed from your inventory.`,
-    });
+  const handleRemoveProduct = async (vendorProductId: string, productName: string) => {
+    try {
+      const response = await ProductManager.deleteVendorProduct(vendorProductId);
+      
+      if (response.success) {
+        // Remove from local state
+        setVendorProducts(prev => prev.filter(vp => vp.id !== vendorProductId));
+        toast({
+          title: "Product removed",
+          description: `${productName} has been removed from your inventory.`,
+        });
+      } else {
+        throw new Error("Failed to delete product");
+      }
+    } catch (error) {
+      toast({
+        title: "Delete failed",
+        description: error instanceof Error ? error.message : "Failed to remove product. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleCreateDiscount = (vendorProduct: VendorProduct) => {
@@ -278,7 +486,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
               <Package className="h-5 w-5" />
               Your Products Inventory
             </div>
-            <Button onClick={onAddMoreProducts} className="flex items-center gap-2">
+            <Button onClick={handleAddMoreProducts} className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Add More Products
             </Button>
@@ -290,14 +498,21 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
               <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">No products configured</h3>
               <p className="text-muted-foreground mb-4">Complete the onboarding process to add products to your inventory</p>
-              <Button onClick={onAddMoreProducts}>
+              <Button onClick={handleAddMoreProducts}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Your First Products
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
-              {vendorProducts.map(vendorProduct => (
+              {vendorProducts.map(vendorProduct => {
+                // Safety check for missing product information
+                if (!vendorProduct.product) {
+                  console.warn('Vendor product missing product information:', vendorProduct);
+                  return null; // Skip rendering this item
+                }
+                
+                return (
                 <div key={vendorProduct.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
@@ -324,7 +539,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                       
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg">{vendorProduct.product.name}</h3>
+                          <h3 className="font-semibold text-lg">{toTitleCase(vendorProduct.product.name)}</h3>
                           <Badge variant="secondary">{vendorProduct.product.brandName}</Badge>
                           {vendorProduct.isActive ? (
                             <Badge variant="outline" className="text-success border-success">
@@ -397,11 +612,303 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Add More Products Modal */}
+      <Dialog open={showAddProductsModal} onOpenChange={setShowAddProductsModal}>
+        <DialogContent className="max-w-6xl h-[90vh] flex flex-col">
+          <DialogHeader className="flex-shrink-0">
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="h-5 w-5" />
+              Add More Products
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="flex flex-col flex-1 min-h-0">
+            {/* Step Indicator */}
+            <div className="flex items-center gap-4 mb-6 flex-shrink-0">
+              <div className={`flex items-center gap-2 ${addProductsStep === 'catalog' ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${addProductsStep === 'catalog' ? 'bg-primary text-white' : 'bg-muted'}`}>
+                  1
+                </div>
+                <span className="text-sm font-medium">Select Products</span>
+              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground" />
+              <div className={`flex items-center gap-2 ${addProductsStep === 'pricing' ? 'text-primary' : 'text-muted-foreground'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${addProductsStep === 'pricing' ? 'bg-primary text-white' : 'bg-muted'}`}>
+                  2
+                </div>
+                <span className="text-sm font-medium">Configure Pricing</span>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            {addProductsStep === 'catalog' && (
+              <div className="mb-4">
+                <Input
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+              </div>
+            )}
+
+            {/* Category Filter */}
+            {addProductsStep === 'catalog' && categories.length > 1 && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {categories.map((cat) => (
+                  <Button
+                    key={cat}
+                    variant={selectedCategory === cat ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(cat)}
+                  >
+                    {cat}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto pr-2">
+              {addProductsStep === 'catalog' ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {allProducts
+                      .filter(product => {
+                        const name = (product.name || "").toLowerCase();
+                        const description = (product.description || "").toLowerCase();
+                        const brand = (product.brandName || "").toLowerCase();
+                        const term = searchTerm.toLowerCase();
+                        const cat = (product as any).category || (product as any).categories?.[0] || "";
+                        const matchesCategory = selectedCategory === "All" || cat === selectedCategory;
+                        return (
+                          (name.includes(term) || description.includes(term) || brand.includes(term)) &&
+                          matchesCategory
+                        );
+                      })
+                      .map(product => {
+                        const isSelected = selectedProducts.has(product.id);
+                        const isAlreadyAdded = vendorProducts.some(vp => vp.productId === product.id);
+
+                        return (
+                          <Card 
+                            key={product.id} 
+                            className={`cursor-pointer transition-all ${
+                              isSelected ? 'ring-2 ring-primary' : ''
+                            } ${isAlreadyAdded ? 'opacity-50' : ''}`}
+                            onClick={() => !isAlreadyAdded && handleProductSelection(product.id)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <h3 className="font-semibold text-lg mb-1">{toTitleCase(product.name)}</h3>
+                                  <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="outline" className="text-xs">{product.brandName}</Badge>
+                                    <Badge variant="secondary" className="text-xs">UoM: {product.uom}</Badge>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {isAlreadyAdded && (
+                                    <Badge variant="outline" className="text-success border-success">
+                                      <CheckCircle className="h-3 w-3 mr-1" />
+                                      Added
+                                    </Badge>
+                                  )}
+                                  {!isAlreadyAdded && (
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={() => handleProductSelection(product.id)}
+                                      className="ml-2"
+                                    />
+                                  )}
+                                </div>
+                              </div>
+                              
+                              <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                                {product.imageUrl ? (
+                                  <img 
+                                    src={product.imageUrl} 
+                                    alt={product.name}
+                                    className="w-full h-full object-cover rounded-lg"
+                                    onError={(e) => {
+                                      const target = e.currentTarget as HTMLImageElement;
+                                      target.style.display = 'none';
+                                      const nextSibling = target.nextElementSibling as HTMLElement;
+                                      if (nextSibling) {
+                                        nextSibling.style.display = 'flex';
+                                      }
+                                    }}
+                                  />
+                                ) : (
+                                  <Package className="h-8 w-8 text-muted-foreground" />
+                                )}
+                                <Package className="h-8 w-8 text-muted-foreground" style={{ display: 'none' }} />
+                              </div>
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Array.from(selectedProducts).map(productId => {
+                    const product = allProducts.find(p => p.id === productId);
+                    const config = productConfigs[productId];
+                    
+                    if (!product) return null;
+
+                    return (
+                      <Card key={productId} className="shadow-card">
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-4 mb-4">
+                            <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
+                              {product.imageUrl ? (
+                                <img 
+                                  src={product.imageUrl} 
+                                  alt={product.name}
+                                  className="w-full h-full object-cover rounded-lg"
+                                  onError={(e) => {
+                                    const target = e.currentTarget as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const nextSibling = target.nextElementSibling as HTMLElement;
+                                    if (nextSibling) {
+                                      nextSibling.style.display = 'flex';
+                                    }
+                                  }}
+                                />
+                              ) : (
+                                <Package className="h-6 w-6 text-muted-foreground" />
+                              )}
+                              <Package className="h-6 w-6 text-muted-foreground" style={{ display: 'none' }} />
+                            </div>
+                            <div className="flex-1">
+                              <h3 className="font-semibold text-lg mb-1">{toTitleCase(product.name)}</h3>
+                              <p className="text-sm text-muted-foreground mb-2">{product.description}</p>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-xs">{product.brandName}</Badge>
+                                <Badge variant="secondary" className="text-xs">UoM: {product.uom}</Badge>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="space-y-2">
+                              <Label>MRP (₹)</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={config?.mrp || ""}
+                                onChange={(e) => handleUpdateProductConfig(productId, 'mrp', parseFloat(e.target.value) || 0)}
+                                disabled={isAddingProducts}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Selling Price (₹)</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0.00"
+                                value={config?.price || ""}
+                                onChange={(e) => handleUpdateProductConfig(productId, 'price', parseFloat(e.target.value) || 0)}
+                                disabled={isAddingProducts}
+                              />
+                              {config?.price && config?.mrp && config.price > config.mrp && (
+                                <p className="text-xs text-destructive">Price cannot exceed MRP</p>
+                              )}
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Stock Quantity</Label>
+                              <Input
+                                type="number"
+                                step="0.01"
+                                placeholder="0"
+                                value={config?.stockQty || ""}
+                                onChange={(e) => handleUpdateProductConfig(productId, 'stockQty', parseFloat(e.target.value) || 0)}
+                                disabled={isAddingProducts}
+                              />
+                              <p className="text-xs text-muted-foreground">Per {product.uom}</p>
+                            </div>
+                            <div className="space-y-2">
+                              <Label>Delivery Service</Label>
+                              <div className="flex items-center space-x-2 mt-3">
+                                <Switch
+                                  checked={config?.deliverySupported || false}
+                                  onCheckedChange={(checked) => handleUpdateProductConfig(productId, 'deliverySupported', checked)}
+                                  disabled={isAddingProducts}
+                                />
+                                <Label className="text-sm">
+                                  {config?.deliverySupported ? "I provide delivery" : "DropSi handles delivery"}
+                                </Label>
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex justify-between items-center pt-4 border-t mt-4 flex-shrink-0">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  if (addProductsStep === 'pricing') {
+                    setAddProductsStep('catalog');
+                  } else {
+                    setShowAddProductsModal(false);
+                  }
+                }}
+                disabled={isAddingProducts}
+              >
+                {addProductsStep === 'pricing' ? 'Back to Selection' : 'Cancel'}
+              </Button>
+              
+              <div className="flex items-center gap-2">
+                {addProductsStep === 'catalog' ? (
+                  <Button 
+                    onClick={handleContinueToPricing}
+                    disabled={selectedProducts.size === 0}
+                  >
+                    Continue to Pricing
+                    <ArrowRight className="h-4 w-4 ml-2" />
+                  </Button>
+                ) : (
+                  <Button 
+                    onClick={handleAddProducts}
+                    disabled={!isPricingFormValid() || isAddingProducts}
+                  >
+                    {isAddingProducts ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Adding Products...
+                      </>
+                    ) : (
+                      <>
+                        Add {selectedProducts.size} Product{selectedProducts.size !== 1 ? 's' : ''}
+                        <Plus className="h-4 w-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Product Dialog */}
       <Dialog open={!!editingProduct} onOpenChange={() => setEditingProduct(null)}>

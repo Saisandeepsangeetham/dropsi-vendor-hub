@@ -328,7 +328,75 @@ export class ProductAPI {
       body: JSON.stringify({ products }),
     });
 
-    return handleApiResponse<BulkAddProductsResponse>(response);
+    const data = await handleApiResponse<BulkAddProductsResponse>(response);
+    
+    return {
+      ...data,
+      results: {
+        ...data.results,
+        success: data.results.success.map(snakeToCamel),
+      },
+    };
+  }
+
+  static async updateVendorProduct(vendorProductId: string, updates: {
+    price?: number;
+    mrp?: number;
+    stockQty?: number;
+    isActive?: boolean;
+    deliverySupported?: boolean;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    vendorProduct: VendorProduct;
+  }> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/v1/vendor/vendor-products/${vendorProductId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    });
+
+    const data = await handleApiResponse<{
+      success: boolean;
+      message: string;
+      vendorProduct: VendorProduct;
+    }>(response);
+    
+    return {
+      ...data,
+      vendorProduct: snakeToCamel(data.vendorProduct),
+    };
+  }
+
+  static async deleteVendorProduct(vendorProductId: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const token = getAuthToken();
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
+    const response = await fetch(`${API_BASE_URL}/v1/vendor/vendor-products/${vendorProductId}`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
+
+    return handleApiResponse<{
+      success: boolean;
+      message: string;
+    }>(response);
   }
 }
 
@@ -436,6 +504,35 @@ export class ProductManager {
   }[]): Promise<BulkAddProductsResponse> {
     try {
       return await ProductAPI.bulkAddProducts(products);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async updateVendorProduct(vendorProductId: string, updates: {
+    price?: number;
+    mrp?: number;
+    stockQty?: number;
+    isActive?: boolean;
+    deliverySupported?: boolean;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    vendorProduct: VendorProduct;
+  }> {
+    try {
+      return await ProductAPI.updateVendorProduct(vendorProductId, updates);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  static async deleteVendorProduct(vendorProductId: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    try {
+      return await ProductAPI.deleteVendorProduct(vendorProductId);
     } catch (error) {
       throw error;
     }

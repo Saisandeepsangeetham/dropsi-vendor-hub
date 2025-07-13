@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, redirectTo = '/vendor' }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { vendor, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -21,7 +21,7 @@ const ProtectedRoute = ({ children, redirectTo = '/vendor' }: ProtectedRouteProp
     );
   }
 
-  if (!isAuthenticated) {
+  if (!vendor) {
     return <Navigate to={redirectTo} replace />;
   }
 
