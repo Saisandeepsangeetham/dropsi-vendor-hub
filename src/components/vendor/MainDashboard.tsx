@@ -24,8 +24,9 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
   const [error, setError] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [editForm, setEditForm] = useState<Partial<VendorProduct>>({});
+  const [showCreateDiscountDialog, setShowCreateDiscountDialog] = useState(false);
   const [showDiscountDialog, setShowDiscountDialog] = useState(false);
-  const [selectedVendorProduct, setSelectedVendorProduct] = useState<VendorProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<VendorProduct | null>(null);
   const [newDiscount, setNewDiscount] = useState({
     discountType: "percentage" as "percentage" | "flat",
     discountValue: 0,
@@ -36,6 +37,8 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
     endsAt: "",
     isActive: true
   });
+  const [productDiscounts, setProductDiscounts] = useState<Record<string, any>>({});
+  const [selectedDiscount, setSelectedDiscount] = useState<any>(null);
 
   // Add More Products Modal State
   const [showAddProductsModal, setShowAddProductsModal] = useState(false);
@@ -314,19 +317,10 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
     }
   };
 
-  const handleCreateDiscount = (vendorProduct: VendorProduct) => {
-    setSelectedVendorProduct(vendorProduct);
-    setNewDiscount({
-      discountType: "percentage",
-      discountValue: 0,
-      cardTitle: "",
-      description: "",
-      terms: "",
-      startsAt: "",
-      endsAt: "",
-      isActive: true
-    });
-    setShowDiscountDialog(true);
+  const handleCreateDiscount = (product: VendorProduct) => {
+    setSelectedProduct(product);
+    setShowCreateDiscountDialog(true);
+    setShowDiscountDialog(false); // Ensure discount view dialog is closed
   };
 
   const calculateDiscountedPrice = (originalPrice: number, discountType: "percentage" | "flat", discountValue: number) => {
@@ -338,7 +332,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
   };
 
   const handleSaveDiscount = async () => {
-    if (!selectedVendorProduct || !newDiscount.cardTitle || !newDiscount.discountValue) {
+    if (!selectedProduct || !newDiscount.cardTitle || !newDiscount.discountValue) {
       toast({
         title: "Missing information",
         description: "Please fill all required fields.",
@@ -349,14 +343,14 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
 
     try {
       const discountedPrice = calculateDiscountedPrice(
-        selectedVendorProduct.price,
+        selectedProduct.price,
         newDiscount.discountType,
         newDiscount.discountValue
       );
 
       // Create discount using the API
       const discountData = {
-        vendorProductId: selectedVendorProduct.id,
+        vendorProductId: selectedProduct.id,
         discountType: newDiscount.discountType,
         discountValue: newDiscount.discountValue,
         discountedPrice: discountedPrice,
@@ -370,12 +364,12 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
 
       await DiscountManager.createDiscount(discountData);
 
-      setShowDiscountDialog(false);
-      setSelectedVendorProduct(null);
+      setShowCreateDiscountDialog(false);
+      setSelectedProduct(null);
 
       toast({
         title: "Discount created successfully",
-        description: `Discount "${newDiscount.cardTitle}" has been created for ${selectedVendorProduct.product.name}.`,
+        description: `Discount "${newDiscount.cardTitle}" has been created for ${selectedProduct.product.name}.`,
       });
     } catch (error) {
       toast({
@@ -383,6 +377,32 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
         description: error instanceof Error ? error.message : "Please try again or contact support.",
         variant: "destructive",
       });
+    }
+  };
+
+  useEffect(() => {
+    loadAllDiscounts();
+  }, []);
+
+  const loadAllDiscounts = async () => {
+    try {
+      const { discounts } = await DiscountManager.getAllVendorDiscounts();
+      const discountsByProduct = discounts.reduce((acc, discount) => {
+        acc[discount.vendorProductId] = discount;
+        return acc;
+      }, {} as Record<string, any>);
+      setProductDiscounts(discountsByProduct);
+    } catch (error) {
+      console.error('Error loading discounts:', error);
+    }
+  };
+
+  const handleShowDiscount = (productId: string) => {
+    const discount = productDiscounts[productId];
+    if (discount) {
+      setSelectedDiscount(discount);
+      setShowDiscountDialog(true);
+      setShowCreateDiscountDialog(false); // Ensure create dialog is closed
     }
   };
 
@@ -529,6 +549,8 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                   return null; // Skip rendering this item
                 }
                 
+                const hasDiscount = !!productDiscounts[vendorProduct.id];
+                
                 return (
                 <div key={vendorProduct.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                   <div className="flex items-center justify-between">
@@ -567,6 +589,11 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                             <Badge variant="outline" className="text-destructive border-destructive">
                               <XCircle className="h-3 w-3 mr-1" />
                               Out of Stock
+                            </Badge>
+                          )}
+                          {hasDiscount && (
+                            <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                              Active Discount
                             </Badge>
                           )}
                         </div>
@@ -611,13 +638,24 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleCreateDiscount(vendorProduct)}
-                      >
-                        <Tag className="h-4 w-4" />
-                      </Button>
+                      {hasDiscount ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleShowDiscount(vendorProduct.id)}
+                          className="bg-green-500 hover:bg-green-600 text-white border-green-500 hover:border-green-600"
+                        >
+                          <Tag className="h-4 w-4" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCreateDiscount(vendorProduct)}
+                        >
+                          <Tag className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="sm"
@@ -983,7 +1021,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
       </Dialog>
 
       {/* Create Discount Dialog */}
-      <Dialog open={showDiscountDialog} onOpenChange={setShowDiscountDialog}>
+      <Dialog open={showCreateDiscountDialog} onOpenChange={setShowCreateDiscountDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Create Discount</DialogTitle>
@@ -1033,7 +1071,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
               />
             </div>
             <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowDiscountDialog(false)}>
+              <Button variant="outline" onClick={() => setShowCreateDiscountDialog(false)}>
                 Cancel
               </Button>
               <Button onClick={handleSaveDiscount}>
@@ -1042,6 +1080,59 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Discount Dialog */}
+      <Dialog open={showDiscountDialog && !!selectedDiscount} onOpenChange={setShowDiscountDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Discount Details</DialogTitle>
+          </DialogHeader>
+          {selectedDiscount && (
+            <div className="space-y-4">
+              <div className="grid gap-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Discount Type</span>
+                  <span>{selectedDiscount.discountType === 'percentage' ? 'Percentage' : 'Flat'}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Discount Value</span>
+                  <span>
+                    {selectedDiscount.discountType === 'percentage' 
+                      ? `${selectedDiscount.discountValue}%` 
+                      : `₹${selectedDiscount.discountValue}`}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Original Price</span>
+                  <span>₹{selectedDiscount.originalPrice}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Discounted Price</span>
+                  <span>₹{selectedDiscount.discountedPrice}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Valid From</span>
+                  <span>{new Date(selectedDiscount.startsAt).toLocaleDateString()}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">Valid Until</span>
+                  <span>{new Date(selectedDiscount.endsAt).toLocaleDateString()}</span>
+                </div>
+                <div className="pt-4">
+                  <h4 className="font-medium mb-2">Description</h4>
+                  <p className="text-sm text-muted-foreground">{selectedDiscount.description}</p>
+                </div>
+                {selectedDiscount.terms && (
+                  <div className="pt-2">
+                    <h4 className="font-medium mb-2">Terms & Conditions</h4>
+                    <p className="text-sm text-muted-foreground">{selectedDiscount.terms}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

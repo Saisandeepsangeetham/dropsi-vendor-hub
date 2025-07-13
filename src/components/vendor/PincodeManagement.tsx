@@ -1,87 +1,124 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { MapPin, Plus, Trash2, Save } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { MapPin, Plus, Trash2, Save, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { PincodeManager, VendorPincode, PincodeDetails } from "@/lib/api";
 
 interface PincodeManagementProps {
   vendorId: string;
 }
 
 const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
-  const [pincodes, setPincodes] = useState([
-    { id: "1", pincode: "110001", area: "Connaught Place, New Delhi", is_active: true },
-    { id: "2", pincode: "110002", area: "Darya Ganj, New Delhi", is_active: true },
-    { id: "3", pincode: "110003", area: "Kashmere Gate, New Delhi", is_active: false },
-  ]);
-  const [newPincode, setNewPincode] = useState("");
-  const [newArea, setNewArea] = useState("");
+  const [vendorPincode, setVendorPincode] = useState<VendorPincode | null>(null);
+  const [availablePincodes, setAvailablePincodes] = useState<PincodeDetails[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
+  const [selectedPincode, setSelectedPincode] = useState("");
+  const [isCreating, setIsCreating] = useState(false);
   const { toast } = useToast();
 
-  const handleAddPincode = async () => {
-    if (!newPincode || !newArea) {
-      toast({
-        title: "Missing information",
-        description: "Please enter both pincode and area name.",
-        variant: "destructive",
-      });
-      return;
-    }
+  useEffect(() => {
+    loadVendorPincode();
+    loadAvailablePincodes();
+  }, []);
 
+  const loadVendorPincode = async () => {
     try {
-      // TODO: Replace with actual Supabase insert
-      // const { error } = await supabase
-      //   .from('vendor_service_pincodes')
-      //   .insert([{
-      //     vendor_id: vendorId,
-      //     pincode: newPincode,
-      //     area: newArea,
-      //     is_active: true
-      //   }]);
-
-      const newEntry = {
-        id: Date.now().toString(),
-        pincode: newPincode,
-        area: newArea,
-        is_active: true
-      };
-
-      setPincodes(prev => [...prev, newEntry]);
-      setNewPincode("");
-      setNewArea("");
-      setIsAdding(false);
-
-      toast({
-        title: "Pincode added",
-        description: `${newPincode} has been added to your service areas.`,
-      });
+      setIsLoading(true);
+      const pincode = await PincodeManager.getVendorPincode();
+      setVendorPincode(pincode);
     } catch (error) {
+      console.error('Error loading vendor pincode:', error);
+      // If no pincode is assigned, this is expected
+      setVendorPincode(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadAvailablePincodes = async () => {
+    try {
+      const { pincodes } = await PincodeManager.getAvailablePincodes();
+      setAvailablePincodes(pincodes);
+    } catch (error) {
+      console.error('Error loading available pincodes:', error);
       toast({
-        title: "Failed to add pincode",
-        description: "Please try again or contact support.",
+        title: "Error loading pincodes",
+        description: "Failed to load available pincodes. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  const handleRemovePincode = async (pincodeId: string) => {
-    try {
-      // TODO: Replace with actual Supabase delete
-      // const { error } = await supabase
-      //   .from('vendor_service_pincodes')
-      //   .delete()
-      //   .eq('id', pincodeId);
+  const validatePincode = (pincode: string): boolean => {
+    // Must be exactly 6 digits
+    if (!/^\d{6}$/.test(pincode)) {
+      toast({
+        title: "Invalid pincode format",
+        description: "Pincode must be exactly 6 digits.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    return true;
+  };
 
-      setPincodes(prev => prev.filter(p => p.id !== pincodeId));
+  const handleAddPincode = async () => {
+    if (!selectedPincode) {
+      toast({
+        title: "Missing information",
+        description: "Please select a pincode.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validatePincode(selectedPincode)) {
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      const newVendorPincode = await PincodeManager.createVendorPincode(selectedPincode);
+      setVendorPincode(newVendorPincode);
+      setSelectedPincode("");
+      setIsAdding(false);
 
       toast({
-        title: "Pincode removed",
-        description: "Service area has been removed from your coverage.",
+        title: "Pincode assigned successfully",
+        description: `${selectedPincode} has been assigned to your service area.`,
+      });
+
+      // Reload available pincodes to update the list
+      await loadAvailablePincodes();
+    } catch (error) {
+      console.error('Error creating vendor pincode:', error);
+      toast({
+        title: "Failed to assign pincode",
+        description: error instanceof Error ? error.message : "Please try again or contact support.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleRemovePincode = async () => {
+    if (!vendorPincode) return;
+
+    try {
+      // Note: According to business rules, pincodes cannot be deleted once assigned
+      // This would require a separate API endpoint for deletion if needed
+      toast({
+        title: "Cannot remove pincode",
+        description: "Pincodes cannot be removed once assigned. Please contact support if you need to change your service area.",
+        variant: "destructive",
       });
     } catch (error) {
       toast({
@@ -92,33 +129,22 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
     }
   };
 
-  const togglePincodeStatus = async (pincodeId: string) => {
-    try {
-      // TODO: Replace with actual Supabase update
-      // const pincode = pincodes.find(p => p.id === pincodeId);
-      // const { error } = await supabase
-      //   .from('vendor_service_pincodes')
-      //   .update({ is_active: !pincode?.is_active })
-      //   .eq('id', pincodeId);
-
-      setPincodes(prev => 
-        prev.map(p => 
-          p.id === pincodeId ? { ...p, is_active: !p.is_active } : p
-        )
-      );
-
-      toast({
-        title: "Status updated",
-        description: "Pincode service status has been updated.",
-      });
-    } catch (error) {
-      toast({
-        title: "Failed to update status",
-        description: "Please try again or contact support.",
-        variant: "destructive",
-      });
-    }
+  const getSelectedPincodeDetails = (): PincodeDetails | undefined => {
+    return availablePincodes.find(p => p.pincode === selectedPincode);
   };
+
+  if (isLoading) {
+    return (
+      <Card className="shadow-card">
+        <CardContent className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2 animate-spin" />
+            <p className="text-sm text-muted-foreground">Loading service area...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className="shadow-card">
@@ -129,95 +155,137 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
               <MapPin className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold">Service Areas</h3>
-              <p className="text-sm text-muted-foreground">Manage delivery pincodes</p>
+              <h3 className="text-xl font-semibold">Service Area</h3>
+              <p className="text-sm text-muted-foreground">Manage your delivery pincode</p>
             </div>
           </div>
-          <Dialog open={isAdding} onOpenChange={setIsAdding}>
-            <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Pincode
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Service Pincode</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="new-pincode">Pincode</Label>
-                  <Input
-                    id="new-pincode"
-                    placeholder="110001"
-                    value={newPincode}
-                    onChange={(e) => setNewPincode(e.target.value)}
-                  />
+          {!vendorPincode && (
+            <Dialog open={isAdding} onOpenChange={setIsAdding}>
+              <DialogTrigger asChild>
+                <Button size="sm">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Assign Pincode
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Assign Service Pincode</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="pincode-select">Select Pincode</Label>
+                    <Select value={selectedPincode} onValueChange={setSelectedPincode}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a pincode" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availablePincodes.map((pincode) => (
+                          <SelectItem key={pincode.pincode} value={pincode.pincode}>
+                            {pincode.pincode} - {pincode.city}, {pincode.state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {selectedPincode && getSelectedPincodeDetails() && (
+                    <div className="p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2 mb-2">
+                        <AlertCircle className="h-4 w-4 text-blue-500" />
+                        <span className="text-sm font-medium">Pincode Details</span>
+                      </div>
+                      <div className="text-sm space-y-1">
+                        <p><span className="font-medium">City:</span> {getSelectedPincodeDetails()?.city}</p>
+                        <p><span className="font-medium">State:</span> {getSelectedPincodeDetails()?.state}</p>
+                        <p><span className="font-medium">Coordinates:</span> {getSelectedPincodeDetails()?.lat}, {getSelectedPincodeDetails()?.lng}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsAdding(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleAddPincode} 
+                      disabled={!selectedPincode || isCreating}
+                    >
+                      {isCreating ? (
+                        <>
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent mr-2" />
+                          Assigning...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="h-4 w-4 mr-2" />
+                          Assign Pincode
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="new-area">Area Name</Label>
-                  <Input
-                    id="new-area"
-                    placeholder="Connaught Place, New Delhi"
-                    value={newArea}
-                    onChange={(e) => setNewArea(e.target.value)}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={() => setIsAdding(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleAddPincode}>
-                    <Save className="h-4 w-4 mr-2" />
-                    Add Pincode
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+              </DialogContent>
+            </Dialog>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {pincodes.length === 0 ? (
+          {!vendorPincode ? (
             <div className="text-center py-8">
               <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No service areas added</h3>
-              <p className="text-muted-foreground mb-4">Add pincodes where you can deliver products</p>
+              <h3 className="text-lg font-semibold mb-2">No service area assigned</h3>
+              <p className="text-muted-foreground mb-4">Assign a pincode to start delivering in that area</p>
               <Button onClick={() => setIsAdding(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Add Your First Pincode
+                Assign Your First Pincode
               </Button>
             </div>
           ) : (
-            <div className="grid gap-3">
-              {pincodes.map((pincode) => (
-                <div key={pincode.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="font-mono font-semibold text-lg">{pincode.pincode}</div>
-                    <div>
-                      <p className="font-medium">{pincode.area}</p>
-                    </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-primary/10 rounded-full">
+                    <MapPin className="h-6 w-6 text-primary" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Badge 
-                      variant={pincode.is_active ? "default" : "secondary"}
-                      className={`cursor-pointer ${pincode.is_active ? "bg-success hover:bg-success/80" : ""}`}
-                      onClick={() => togglePincodeStatus(pincode.id)}
-                    >
-                      {pincode.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleRemovePincode(pincode.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-mono font-semibold text-xl">{vendorPincode.pincode}</span>
+                      <Badge variant="default" className="bg-success hover:bg-success/80">
+                        Active
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {vendorPincode.pincodeDetails.city}, {vendorPincode.pincodeDetails.state}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Coordinates: {vendorPincode.pincodeDetails.lat}, {vendorPincode.pincodeDetails.lng}
+                    </p>
                   </div>
                 </div>
-              ))}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRemovePincode}
+                    className="text-destructive hover:text-destructive"
+                    disabled
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="h-4 w-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">Important Notice</span>
+                </div>
+                <p className="text-sm text-blue-700">
+                  Once a pincode is assigned, it cannot be changed or removed. 
+                  This ensures consistent service delivery to your customers.
+                </p>
+              </div>
             </div>
           )}
         </div>

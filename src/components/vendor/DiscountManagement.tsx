@@ -30,7 +30,17 @@ const DiscountManagement = ({ vendorProducts }: DiscountManagementProps) => {
   const [totalDiscounts, setTotalDiscounts] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [editingDiscount, setEditingDiscount] = useState<Discount | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingDiscount, setEditingDiscount] = useState<(Discount & {
+    originalPrice: number;
+    product: {
+      name: string;
+      description: string;
+      imageUrl: string;
+      uom: string;
+      brandName: string;
+    };
+  }) | null>(null);
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [newDiscount, setNewDiscount] = useState<Partial<Discount>>({
     discountType: "percentage",
@@ -137,6 +147,65 @@ const DiscountManagement = ({ vendorProducts }: DiscountManagementProps) => {
     } catch (error) {
       toast({
         title: "Failed to create discount",
+        description: error instanceof Error ? error.message : "Please try again or contact support.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditClick = (discount: Discount & {
+    originalPrice: number;
+    product: {
+      name: string;
+      description: string;
+      imageUrl: string;
+      uom: string;
+      brandName: string;
+    };
+  }) => {
+    setEditingDiscount(discount);
+    setIsEditing(true);
+  };
+
+  const handleUpdateDiscount = async () => {
+    if (!editingDiscount) return;
+
+    try {
+      const discountData = {
+        discountType: editingDiscount.discountType,
+        discountValue: editingDiscount.discountValue,
+        discountedPrice: calculateDiscountedPrice(
+          editingDiscount.originalPrice,
+          editingDiscount.discountType,
+          editingDiscount.discountValue
+        ),
+        cardTitle: editingDiscount.cardTitle,
+        description: editingDiscount.description || "",
+        terms: editingDiscount.terms || "",
+        startsAt: editingDiscount.startsAt,
+        endsAt: editingDiscount.endsAt || "",
+        isActive: editingDiscount.isActive
+      };
+
+      await DiscountManager.updateDiscount(editingDiscount.id, discountData);
+      
+      // Reload discounts to get updated data
+      const response = await DiscountManager.getAllVendorDiscounts({
+        isActive: activeFilter === 'all' ? undefined : activeFilter === 'active'
+      });
+      setDiscounts(response.discounts);
+      setTotalDiscounts(response.totalDiscounts);
+      
+      setIsEditing(false);
+      setEditingDiscount(null);
+
+      toast({
+        title: "Discount updated",
+        description: "Discount has been updated successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to update discount",
         description: error instanceof Error ? error.message : "Please try again or contact support.",
         variant: "destructive",
       });
@@ -322,6 +391,132 @@ const DiscountManagement = ({ vendorProducts }: DiscountManagementProps) => {
         </CardTitle>
       </CardHeader>
       
+      {/* Edit Discount Dialog */}
+      <Dialog open={isEditing} onOpenChange={setIsEditing}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Discount</DialogTitle>
+          </DialogHeader>
+          {editingDiscount && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Product</Label>
+                <p className="text-sm text-muted-foreground">
+                  {editingDiscount.product.name} - {editingDiscount.product.brandName}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-discount-type">Discount Type</Label>
+                  <Select 
+                    value={editingDiscount.discountType} 
+                    onValueChange={(value: "percentage" | "flat") => 
+                      setEditingDiscount(prev => prev ? { ...prev, discountType: value } : null)
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="percentage">Percentage (%)</SelectItem>
+                      <SelectItem value="flat">Flat Amount (₹)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-discount-value">
+                    Discount Value {editingDiscount.discountType === "percentage" ? "(%)" : "(₹)"}
+                  </Label>
+                  <Input
+                    id="edit-discount-value"
+                    type="number"
+                    step="0.01"
+                    value={editingDiscount.discountValue}
+                    onChange={(e) => setEditingDiscount(prev => 
+                      prev ? { ...prev, discountValue: parseFloat(e.target.value) || 0 } : null
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-card-title">Discount Title</Label>
+                <Input
+                  id="edit-card-title"
+                  value={editingDiscount.cardTitle}
+                  onChange={(e) => setEditingDiscount(prev => 
+                    prev ? { ...prev, cardTitle: e.target.value } : null
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea
+                  id="edit-description"
+                  value={editingDiscount.description || ""}
+                  onChange={(e) => setEditingDiscount(prev => 
+                    prev ? { ...prev, description: e.target.value } : null
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="edit-terms">Terms & Conditions</Label>
+                <Textarea
+                  id="edit-terms"
+                  value={editingDiscount.terms || ""}
+                  onChange={(e) => setEditingDiscount(prev => 
+                    prev ? { ...prev, terms: e.target.value } : null
+                  )}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-start-date">Start Date & Time</Label>
+                  <Input
+                    id="edit-start-date"
+                    type="datetime-local"
+                    value={editingDiscount.startsAt}
+                    onChange={(e) => setEditingDiscount(prev => 
+                      prev ? { ...prev, startsAt: e.target.value } : null
+                    )}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-end-date">End Date & Time (Optional)</Label>
+                  <Input
+                    id="edit-end-date"
+                    type="datetime-local"
+                    value={editingDiscount.endsAt || ""}
+                    onChange={(e) => setEditingDiscount(prev => 
+                      prev ? { ...prev, endsAt: e.target.value } : null
+                    )}
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => {
+                  setIsEditing(false);
+                  setEditingDiscount(null);
+                }}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateDiscount}>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Summary and Filters */}
       <div className="px-6 py-4 border-b">
         <div className="flex items-center justify-between mb-4">
@@ -435,7 +630,11 @@ const DiscountManagement = ({ vendorProducts }: DiscountManagementProps) => {
                       </div>
                       
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditClick(discount)}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                         <Button 

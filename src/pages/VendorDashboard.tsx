@@ -122,14 +122,26 @@ const VendorDashboard = () => {
   // Main dashboard for existing vendors
   return (
     <div className="min-h-screen bg-gradient-card">
-      <div className="flex items-center justify-between p-6 border-b bg-card">
+      <div className="flex items-center justify-between p-6 border-b bg-gradient-primary text-white">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-semibold">Vendor Dashboard</h1>
-          <Badge variant="outline" className="text-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/20">
+              <img 
+                src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
+                alt="DropSi Logo" 
+                className="w-full h-full object-cover"
+              />
+            </div>
+            <div>
+              <h1 className="text-2xl font-semibold">DropSi Vendor Dashboard</h1>
+              <p className="text-blue-100 text-sm">Manage your grocery business</p>
+            </div>
+          </div>
+          <Badge variant="secondary" className="text-sm bg-white/20 text-white border-white/30">
             {vendor.displayName}
           </Badge>
         </div>
-        <Button variant="outline" onClick={handleLogout}>
+        <Button variant="outline" onClick={handleLogout} className="border-white text-white bg-white/10">
           <LogOut className="h-4 w-4 mr-2" />
           Logout
         </Button>
