@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Filter, Package, Truck, X, Trash2, ArrowLeft, Check } from "lucide-react";
+import { Search, Filter, Package, Truck, X, Trash2, ArrowLeft, CheckCircle } from "lucide-react";
 import { Product, VendorProduct } from "@/pages/VendorDashboard";
 
 // Mock data matching the database schema
@@ -270,9 +270,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                     />
                   ) : (
                     <div className="mt-1 flex items-center justify-center w-4 h-4">
-                      <div className="w-5 h-5 bg-success rounded-full flex items-center justify-center">
-                        <Check className="h-3 w-3 text-white" />
-                      </div>
+                      <CheckCircle className="h-5 w-5 text-success" />
                     </div>
                   )}
                   <div className="flex-1">
