@@ -269,9 +269,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                       className="mt-1"
                     />
                   ) : (
-                    <div className="mt-1 w-4 h-4 flex items-center justify-center">
-                      <div className="w-6 h-6 bg-success rounded-full flex items-center justify-center">
-                        <Check className="h-4 w-4 text-white" />
+                    <div className="mt-1 flex items-center justify-center w-4 h-4">
+                      <div className="w-5 h-5 bg-success rounded-full flex items-center justify-center">
+                        <Check className="h-3 w-3 text-white" />
                       </div>
                     </div>
                   )}
