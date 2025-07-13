@@ -243,19 +243,19 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg bg-muted/30">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-primary/10 rounded-full">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 border rounded-lg bg-muted/30 gap-4">
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="p-3 bg-primary/10 rounded-full flex-shrink-0">
                     <MapPin className="h-6 w-6 text-primary" />
                   </div>
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-mono font-semibold text-xl">{vendorPincode.pincode}</span>
-                      <Badge variant="default" className="bg-success hover:bg-success/80">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className="font-mono font-semibold text-xl break-words">{vendorPincode.pincode}</span>
+                      <Badge variant="default" className="bg-success hover:bg-success/80 flex-shrink-0">
                         Active
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-muted-foreground break-words">
                       {vendorPincode.pincodeDetails.city}, {vendorPincode.pincodeDetails.state}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -263,7 +263,7 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <Button
                     variant="outline"
                     size="sm"

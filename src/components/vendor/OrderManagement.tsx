@@ -212,7 +212,7 @@ const ProductDetailSheet: React.FC<ProductDetailProps> = ({ product }) => {
         </SheetHeader>
         
         <div className="space-y-6 mt-6">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="text-center p-4 bg-primary/5 rounded-lg">
               <div className="text-2xl font-bold text-primary">{product.totalQuantity}</div>
               <div className="text-sm text-muted-foreground">Total {product.unit}</div>

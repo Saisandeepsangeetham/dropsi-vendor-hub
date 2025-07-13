@@ -266,7 +266,7 @@ const PricingSetup = ({ selectedProducts, onComplete, isAddingToExisting = false
                 {/* Price Summary */}
                 {productConfigs[product.id]?.price && productConfigs[product.id]?.mrp && (
                   <div className="mt-4 p-3 bg-muted rounded-lg">
-                    <div className="grid grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                       <div>
                         <span className="text-muted-foreground">MRP:</span>
                         <span className="font-semibold ml-1">₹{productConfigs[product.id]?.mrp}</span>

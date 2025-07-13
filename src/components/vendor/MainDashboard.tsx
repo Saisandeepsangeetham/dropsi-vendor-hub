@@ -24,19 +24,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
   const [error, setError] = useState<string | null>(null);
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [editForm, setEditForm] = useState<Partial<VendorProduct>>({});
-  const [showCreateDiscountDialog, setShowCreateDiscountDialog] = useState(false);
   const [showDiscountDialog, setShowDiscountDialog] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<VendorProduct | null>(null);
-  const [newDiscount, setNewDiscount] = useState({
-    discountType: "percentage" as "percentage" | "flat",
-    discountValue: 0,
-    cardTitle: "",
-    description: "",
-    terms: "",
-    startsAt: "",
-    endsAt: "",
-    isActive: true
-  });
   const [productDiscounts, setProductDiscounts] = useState<Record<string, any>>({});
   const [selectedDiscount, setSelectedDiscount] = useState<any>(null);
 
@@ -198,27 +186,25 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
 
       const response = await ProductManager.bulkAddProducts(productsToAdd);
 
-      if (response.success) {
-        // Refresh vendor products
-        const updatedProducts = await ProductManager.getVendorProducts();
-        setVendorProducts(updatedProducts);
+      toast({
+        title: "Products added successfully",
+        description: `Added ${response.results?.success?.length || 0} product${(response.results?.success?.length || 0) !== 1 ? 's' : ''} to your inventory.`,
+      });
 
-        setShowAddProductsModal(false);
-        setSelectedProducts(new Set());
-        setProductConfigs({});
-        setAddProductsStep('catalog');
+      // Refresh vendor products
+      const updatedProducts = await ProductManager.getVendorProducts();
+      setVendorProducts(updatedProducts);
 
-        toast({
-          title: "Products added successfully",
-          description: `${response.summary.successful} products have been added to your inventory.`,
-        });
-      } else {
-        throw new Error("Failed to add products");
-      }
+      // Close modal and reset state
+      setShowAddProductsModal(false);
+      setSelectedProducts(new Set());
+      setProductConfigs({});
+      setAddProductsStep('catalog');
+      setSearchTerm("");
     } catch (error) {
       toast({
         title: "Failed to add products",
-        description: error instanceof Error ? error.message : "Please try again.",
+        description: error instanceof Error ? error.message : "Please try again or contact support.",
         variant: "destructive",
       });
     } finally {
@@ -228,152 +214,85 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
 
   const handleEditClick = (vendorProduct: VendorProduct) => {
     setEditingProduct(vendorProduct);
-    setEditForm(vendorProduct);
+    setEditForm({
+      price: vendorProduct.price,
+      mrp: vendorProduct.mrp,
+      stockQty: vendorProduct.stockQty,
+      deliverySupported: vendorProduct.deliverySupported
+    });
   };
 
   const handleSaveEdit = async () => {
-    if (editingProduct) {
-      try {
-        const response = await ProductManager.updateVendorProduct(editingProduct.id, editForm);
-        
-        if (response.success) {
-          // Update the local state with the updated product, preserving the product information
-          setVendorProducts(prev => 
-            prev.map(vp => 
-              vp.id === editingProduct.id ? {
-                ...response.vendorProduct,
-                product: vp.product // Preserve the existing product information
-              } : vp
-            )
-          );
-          setEditingProduct(null);
-          toast({
-            title: "Product updated",
-            description: "Product details have been updated successfully.",
-          });
-        } else {
-          throw new Error("Failed to update product");
-        }
-      } catch (error) {
-        toast({
-          title: "Update failed",
-          description: error instanceof Error ? error.message : "Failed to update product. Please try again.",
-          variant: "destructive",
-        });
-      }
+    if (!editingProduct) return;
+
+    try {
+      await ProductManager.updateVendorProduct(editingProduct.id, editForm);
+      
+      // Update local state
+      setVendorProducts(prev => prev.map(vp => 
+        vp.id === editingProduct.id 
+          ? { ...vp, ...editForm }
+          : vp
+      ));
+
+      setEditingProduct(null);
+      setEditForm({});
+
+      toast({
+        title: "Product updated successfully",
+        description: `${editingProduct.product.name} has been updated.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to update product",
+        description: error instanceof Error ? error.message : "Please try again or contact support.",
+        variant: "destructive",
+      });
     }
   };
 
   const toggleAvailability = async (vendorProductId: string, isActive: boolean) => {
     try {
-      const response = await ProductManager.updateVendorProduct(vendorProductId, { isActive });
+      await ProductManager.updateVendorProduct(vendorProductId, { isActive });
       
-      if (response.success) {
-        // Update the local state, preserving the product information
-        setVendorProducts(prev => 
-          prev.map(vp => 
-            vp.id === vendorProductId ? {
-              ...response.vendorProduct,
-              product: vp.product // Preserve the existing product information
-            } : vp
-          )
-        );
-        toast({
-          title: isActive ? "Product activated" : "Product deactivated",
-          description: `Product is now ${isActive ? "available" : "unavailable"} for sale.`,
-        });
-      } else {
-        throw new Error("Failed to update product availability");
-      }
+      // Update local state
+      setVendorProducts(prev => prev.map(vp => 
+        vp.id === vendorProductId 
+          ? { ...vp, isActive }
+          : vp
+      ));
+
+      toast({
+        title: isActive ? "Product activated" : "Product deactivated",
+        description: `Product has been ${isActive ? 'activated' : 'deactivated'} successfully.`,
+      });
     } catch (error) {
       toast({
-        title: "Update failed",
-        description: error instanceof Error ? error.message : "Failed to update product availability.",
+        title: "Failed to update product status",
+        description: error instanceof Error ? error.message : "Please try again or contact support.",
         variant: "destructive",
       });
     }
   };
 
   const handleRemoveProduct = async (vendorProductId: string, productName: string) => {
-    try {
-      const response = await ProductManager.deleteVendorProduct(vendorProductId);
-      
-      if (response.success) {
-        // Remove from local state
-        setVendorProducts(prev => prev.filter(vp => vp.id !== vendorProductId));
-        toast({
-          title: "Product removed",
-          description: `${productName} has been removed from your inventory.`,
-        });
-      } else {
-        throw new Error("Failed to delete product");
-      }
-    } catch (error) {
-      toast({
-        title: "Delete failed",
-        description: error instanceof Error ? error.message : "Failed to remove product. Please try again.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCreateDiscount = (product: VendorProduct) => {
-    setSelectedProduct(product);
-    setShowCreateDiscountDialog(true);
-    setShowDiscountDialog(false); // Ensure discount view dialog is closed
-  };
-
-  const calculateDiscountedPrice = (originalPrice: number, discountType: "percentage" | "flat", discountValue: number) => {
-    if (discountType === "percentage") {
-      return originalPrice - (originalPrice * discountValue / 100);
-    } else {
-      return originalPrice - discountValue;
-    }
-  };
-
-  const handleSaveDiscount = async () => {
-    if (!selectedProduct || !newDiscount.cardTitle || !newDiscount.discountValue) {
-      toast({
-        title: "Missing information",
-        description: "Please fill all required fields.",
-        variant: "destructive",
-      });
+    if (!confirm(`Are you sure you want to remove ${productName} from your inventory?`)) {
       return;
     }
 
     try {
-      const discountedPrice = calculateDiscountedPrice(
-        selectedProduct.price,
-        newDiscount.discountType,
-        newDiscount.discountValue
-      );
-
-      // Create discount using the API
-      const discountData = {
-        vendorProductId: selectedProduct.id,
-        discountType: newDiscount.discountType,
-        discountValue: newDiscount.discountValue,
-        discountedPrice: discountedPrice,
-        cardTitle: newDiscount.cardTitle,
-        description: newDiscount.description,
-        terms: newDiscount.terms,
-        startsAt: newDiscount.startsAt,
-        endsAt: newDiscount.endsAt,
-        isActive: newDiscount.isActive
-      };
-
-      await DiscountManager.createDiscount(discountData);
-
-      setShowCreateDiscountDialog(false);
-      setSelectedProduct(null);
+      await ProductManager.deleteVendorProduct(vendorProductId);
+      
+      // Update local state
+      setVendorProducts(prev => prev.filter(vp => vp.id !== vendorProductId));
 
       toast({
-        title: "Discount created successfully",
-        description: `Discount "${newDiscount.cardTitle}" has been created for ${selectedProduct.product.name}.`,
+        title: "Product removed successfully",
+        description: `${productName} has been removed from your inventory.`,
       });
     } catch (error) {
       toast({
-        title: "Failed to create discount",
+        title: "Failed to remove product",
         description: error instanceof Error ? error.message : "Please try again or contact support.",
         variant: "destructive",
       });
@@ -402,7 +321,6 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
     if (discount) {
       setSelectedDiscount(discount);
       setShowDiscountDialog(true);
-      setShowCreateDiscountDialog(false); // Ensure create dialog is closed
     }
   };
 
@@ -553,9 +471,9 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                 
                 return (
                 <div key={vendorProduct.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-4 flex-1">
+                      <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
                         {vendorProduct.product.imageUrl ? (
                           <img 
                             src={vendorProduct.product.imageUrl} 
@@ -576,30 +494,30 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                         <Package className="h-8 w-8 text-muted-foreground" style={{ display: 'none' }} />
                       </div>
                       
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg">{toTitleCase(vendorProduct.product.name)}</h3>
-                          <Badge variant="secondary">{vendorProduct.product.brandName}</Badge>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-lg break-words">{toTitleCase(vendorProduct.product.name)}</h3>
+                          <Badge variant="secondary" className="flex-shrink-0">{vendorProduct.product.brandName}</Badge>
                           {vendorProduct.isActive ? (
-                            <Badge variant="outline" className="text-success border-success">
+                            <Badge variant="outline" className="text-success border-success flex-shrink-0">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Available
                             </Badge>
                           ) : (
-                            <Badge variant="outline" className="text-destructive border-destructive">
+                            <Badge variant="outline" className="text-destructive border-destructive flex-shrink-0">
                               <XCircle className="h-3 w-3 mr-1" />
                               Out of Stock
                             </Badge>
                           )}
                           {hasDiscount && (
-                            <Badge variant="secondary" className="bg-primary text-primary-foreground">
+                            <Badge variant="secondary" className="bg-primary text-primary-foreground flex-shrink-0">
                               Active Discount
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{vendorProduct.product.description}</p>
+                        <p className="text-sm text-muted-foreground mb-2 break-words">{vendorProduct.product.description}</p>
                         
-                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-sm">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 text-sm">
                           <div className="flex flex-col">
                             <span className="text-muted-foreground text-xs">MRP</span>
                             <span className="font-semibold">₹{vendorProduct.mrp}</span>
@@ -626,7 +544,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                       </div>
                     </div>
                     
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <Switch
                         checked={vendorProduct.isActive}
                         onCheckedChange={(checked) => toggleAvailability(vendorProduct.id, checked)}
@@ -638,20 +556,12 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
-                      {hasDiscount ? (
+                      {hasDiscount && (
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleShowDiscount(vendorProduct.id)}
                           className="bg-green-500 hover:bg-green-600 text-white border-green-500 hover:border-green-600"
-                        >
-                          <Tag className="h-4 w-4" />
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleCreateDiscount(vendorProduct)}
                         >
                           <Tag className="h-4 w-4" />
                         </Button>
@@ -902,9 +812,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                                   onCheckedChange={(checked) => handleUpdateProductConfig(productId, 'deliverySupported', checked)}
                                   disabled={isAddingProducts}
                                 />
-                                <Label className="text-sm">
-                                  {config?.deliverySupported ? "I provide delivery" : "DropSi handles delivery"}
-                                </Label>
+                                <Label className="text-sm">I provide delivery</Label>
                               </div>
                             </div>
                           </div>
@@ -916,47 +824,48 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
               )}
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-between items-center pt-4 border-t mt-4 flex-shrink-0">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  if (addProductsStep === 'pricing') {
-                    setAddProductsStep('catalog');
-                  } else {
-                    setShowAddProductsModal(false);
-                  }
-                }}
-                disabled={isAddingProducts}
-              >
-                {addProductsStep === 'pricing' ? 'Back to Selection' : 'Cancel'}
-              </Button>
-              
-              <div className="flex items-center gap-2">
-                {addProductsStep === 'catalog' ? (
+            {/* Footer */}
+            <div className="flex justify-between items-center pt-4 border-t flex-shrink-0">
+              <div className="text-sm text-muted-foreground">
+                {addProductsStep === 'catalog' 
+                  ? `${selectedProducts.size} product${selectedProducts.size !== 1 ? 's' : ''} selected`
+                  : `Configure pricing for ${selectedProducts.size} product${selectedProducts.size !== 1 ? 's' : ''}`
+                }
+              </div>
+              <div className="flex gap-2">
+                {addProductsStep === 'pricing' ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setAddProductsStep('catalog')}
+                      disabled={isAddingProducts}
+                    >
+                      Back
+                    </Button>
+                    <Button 
+                      onClick={handleAddProducts}
+                      disabled={!isPricingFormValid() || isAddingProducts}
+                    >
+                      {isAddingProducts ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Adding Products...
+                        </>
+                      ) : (
+                        <>
+                          Add {selectedProducts.size} Product{selectedProducts.size !== 1 ? 's' : ''}
+                          <Plus className="h-4 w-4 ml-2" />
+                        </>
+                      )}
+                    </Button>
+                  </>
+                ) : (
                   <Button 
                     onClick={handleContinueToPricing}
                     disabled={selectedProducts.size === 0}
                   >
-                    Continue to Pricing
+                    Continue
                     <ArrowRight className="h-4 w-4 ml-2" />
-                  </Button>
-                ) : (
-                  <Button 
-                    onClick={handleAddProducts}
-                    disabled={!isPricingFormValid() || isAddingProducts}
-                  >
-                    {isAddingProducts ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Adding Products...
-                      </>
-                    ) : (
-                      <>
-                        Add {selectedProducts.size} Product{selectedProducts.size !== 1 ? 's' : ''}
-                        <Plus className="h-4 w-4 ml-2" />
-                      </>
-                    )}
                   </Button>
                 )}
               </div>
@@ -1017,69 +926,6 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Create Discount Dialog */}
-      <Dialog open={showCreateDiscountDialog} onOpenChange={setShowCreateDiscountDialog}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Create Discount</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Discount Type</Label>
-                <Select
-                  value={newDiscount.discountType}
-                  onValueChange={(value: "percentage" | "flat") => 
-                    setNewDiscount(prev => ({ ...prev, discountType: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="percentage">Percentage (%)</SelectItem>
-                    <SelectItem value="flat">Flat Amount (₹)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Discount Value</Label>
-                <Input
-                  type="number"
-                  value={newDiscount.discountValue}
-                  onChange={(e) => setNewDiscount(prev => ({ ...prev, discountValue: parseFloat(e.target.value) || 0 }))}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label>Discount Title</Label>
-              <Input
-                value={newDiscount.cardTitle}
-                onChange={(e) => setNewDiscount(prev => ({ ...prev, cardTitle: e.target.value }))}
-                placeholder="e.g., Weekend Special"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                value={newDiscount.description}
-                onChange={(e) => setNewDiscount(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="Describe the discount offer"
-              />
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowCreateDiscountDialog(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSaveDiscount}>
-                <Save className="h-4 w-4 mr-2" />
-                Create Discount
-              </Button>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 

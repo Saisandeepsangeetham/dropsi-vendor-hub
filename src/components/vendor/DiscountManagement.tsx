@@ -293,7 +293,7 @@ const DiscountManagement = ({ vendorProducts }: DiscountManagementProps) => {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="discount-type">Discount Type</Label>
                     <Select 
@@ -354,7 +354,7 @@ const DiscountManagement = ({ vendorProducts }: DiscountManagementProps) => {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="start-date">Start Date & Time</Label>
                     <Input

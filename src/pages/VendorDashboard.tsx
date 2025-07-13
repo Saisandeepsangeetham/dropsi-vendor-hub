@@ -149,28 +149,28 @@ const VendorDashboard = () => {
 
       <div className="max-w-7xl mx-auto p-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6 mb-6">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 mb-6 overflow-x-auto">
+            <TabsTrigger value="overview" className="flex items-center gap-2 whitespace-nowrap">
               <Package className="h-4 w-4" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="orders" className="flex items-center gap-2">
+            <TabsTrigger value="orders" className="flex items-center gap-2 whitespace-nowrap">
               <ShoppingCart className="h-4 w-4" />
               Orders
             </TabsTrigger>
-            <TabsTrigger value="profile" className="flex items-center gap-2">
+            <TabsTrigger value="profile" className="flex items-center gap-2 whitespace-nowrap">
               <User className="h-4 w-4" />
               Profile
             </TabsTrigger>
-            <TabsTrigger value="discounts" className="flex items-center gap-2">
+            <TabsTrigger value="discounts" className="flex items-center gap-2 whitespace-nowrap">
               <Tag className="h-4 w-4" />
               Discounts
             </TabsTrigger>
-            <TabsTrigger value="areas" className="flex items-center gap-2">
+            <TabsTrigger value="areas" className="flex items-center gap-2 whitespace-nowrap">
               <MapPin className="h-4 w-4" />
               Service Areas
             </TabsTrigger>
-            <TabsTrigger value="performance" className="flex items-center gap-2">
+            <TabsTrigger value="performance" className="flex items-center gap-2 whitespace-nowrap">
               <BarChart3 className="h-4 w-4" />
               Performance
             </TabsTrigger>
