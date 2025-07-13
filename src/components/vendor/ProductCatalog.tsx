@@ -7,58 +7,92 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Search, Filter, Package, Truck } from "lucide-react";
 import { Product } from "@/pages/VendorDashboard";
 
+// Mock data matching the database schema
+const SAMPLE_BRANDS = [
+  { id: "brand-1", name: "Fresh Farms" },
+  { id: "brand-2", name: "Dairy Fresh" },
+  { id: "brand-3", name: "Baker's Best" },
+  { id: "brand-4", name: "Golden Grain" },
+  { id: "brand-5", name: "Tea Garden" }
+];
+
+const SAMPLE_CATEGORIES = [
+  { id: "cat-1", name: "Fruits", display_order: 1 },
+  { id: "cat-2", name: "Vegetables", display_order: 2 },
+  { id: "cat-3", name: "Dairy", display_order: 3 },
+  { id: "cat-4", name: "Bakery", display_order: 4 },
+  { id: "cat-5", name: "Grains", display_order: 5 },
+  { id: "cat-6", name: "Beverages", display_order: 6 }
+];
+
 const SAMPLE_PRODUCTS: Product[] = [
   {
     id: "1",
     name: "Organic Bananas",
-    brand: "Fresh Farms",
-    category: "Fruits",
-    image: "/api/placeholder/100/100",
-    description: "Fresh organic bananas, perfect for daily nutrition"
+    description: "Fresh organic bananas, perfect for daily nutrition",
+    brand_id: "brand-1",
+    brand_name: "Fresh Farms",
+    uom: "kg",
+    image_url: "/api/placeholder/100/100",
+    is_active: true,
+    categories: [{ id: "cat-1", name: "Fruits", display_order: 1 }]
   },
   {
     id: "2", 
     name: "Whole Milk",
-    brand: "Dairy Fresh",
-    category: "Dairy",
-    image: "/api/placeholder/100/100",
-    description: "Fresh whole milk, rich in calcium and protein"
+    description: "Fresh whole milk, rich in calcium and protein",
+    brand_id: "brand-2",
+    brand_name: "Dairy Fresh",
+    uom: "litre",
+    image_url: "/api/placeholder/100/100",
+    is_active: true,
+    categories: [{ id: "cat-3", name: "Dairy", display_order: 3 }]
   },
   {
     id: "3",
     name: "Brown Bread",
-    brand: "Baker's Best",
-    category: "Bakery",
-    image: "/api/placeholder/100/100",
-    description: "Healthy brown bread made with whole grains"
+    description: "Healthy brown bread made with whole grains",
+    brand_id: "brand-3",
+    brand_name: "Baker's Best",
+    uom: "piece",
+    image_url: "/api/placeholder/100/100",
+    is_active: true,
+    categories: [{ id: "cat-4", name: "Bakery", display_order: 4 }]
   },
   {
     id: "4",
     name: "Basmati Rice",
-    brand: "Golden Grain",
-    category: "Grains",
-    image: "/api/placeholder/100/100",
-    description: "Premium quality basmati rice"
+    description: "Premium quality basmati rice",
+    brand_id: "brand-4",
+    brand_name: "Golden Grain",
+    uom: "kg",
+    image_url: "/api/placeholder/100/100",
+    is_active: true,
+    categories: [{ id: "cat-5", name: "Grains", display_order: 5 }]
   },
   {
     id: "5",
     name: "Green Tea",
-    brand: "Tea Garden",
-    category: "Beverages",
-    image: "/api/placeholder/100/100",
-    description: "Refreshing green tea with antioxidants"
+    description: "Refreshing green tea with antioxidants",
+    brand_id: "brand-5",
+    brand_name: "Tea Garden",
+    uom: "box",
+    image_url: "/api/placeholder/100/100",
+    is_active: true,
+    categories: [{ id: "cat-6", name: "Beverages", display_order: 6 }]
   },
   {
     id: "6",
     name: "Greek Yogurt",
-    brand: "Dairy Fresh",
-    category: "Dairy",
-    image: "/api/placeholder/100/100",
-    description: "Creamy Greek yogurt with probiotics"
+    description: "Creamy Greek yogurt with probiotics",
+    brand_id: "brand-2",
+    brand_name: "Dairy Fresh",
+    uom: "cup",
+    image_url: "/api/placeholder/100/100",
+    is_active: true,
+    categories: [{ id: "cat-3", name: "Dairy", display_order: 3 }]
   }
 ];
-
-const CATEGORIES = ["All", "Fruits", "Vegetables", "Dairy", "Bakery", "Grains", "Beverages"];
 
 interface ProductCatalogProps {
   onProductsSelected: (products: Product[]) => void;
@@ -66,14 +100,21 @@ interface ProductCatalogProps {
 
 const ProductCatalog = ({ onProductsSelected }: ProductCatalogProps) => {
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [selectedBrand, setSelectedBrand] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
 
+  const categories = ["All", ...SAMPLE_CATEGORIES.map(c => c.name)];
+  const brands = ["All", ...SAMPLE_BRANDS.map(b => b.name)];
+
   const filteredProducts = SAMPLE_PRODUCTS.filter(product => {
-    const matchesCategory = selectedCategory === "All" || product.category === selectedCategory;
+    const matchesCategory = selectedCategory === "All" || 
+      product.categories.some(cat => cat.name === selectedCategory);
+    const matchesBrand = selectedBrand === "All" || product.brand_name === selectedBrand;
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.brand.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesSearch;
+                         product.brand_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesBrand && matchesSearch && product.is_active;
   });
 
   const handleProductToggle = (productId: string) => {
@@ -108,11 +149,11 @@ const ProductCatalog = ({ onProductsSelected }: ProductCatalogProps) => {
         {/* Search and Filter Section */}
         <Card className="mb-6 shadow-card">
           <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex flex-col md:flex-row gap-4 mb-4">
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Search products by name or brand..."
+                  placeholder="Search products by name, brand, or description..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -120,21 +161,42 @@ const ProductCatalog = ({ onProductsSelected }: ProductCatalogProps) => {
               </div>
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Category:</span>
+                <span className="text-sm font-medium">Filters:</span>
               </div>
             </div>
             
-            <div className="flex flex-wrap gap-2 mt-4">
-              {CATEGORIES.map(category => (
-                <Button
-                  key={category}
-                  variant={selectedCategory === category ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category)}
-                >
-                  {category}
-                </Button>
-              ))}
+            {/* Category Filter */}
+            <div className="mb-4">
+              <p className="text-sm font-medium text-muted-foreground mb-2">Categories:</p>
+              <div className="flex flex-wrap gap-2">
+                {categories.map(category => (
+                  <Button
+                    key={category}
+                    variant={selectedCategory === category ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedCategory(category)}
+                  >
+                    {category}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Brand Filter */}
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Brands:</p>
+              <div className="flex flex-wrap gap-2">
+                {brands.map(brand => (
+                  <Button
+                    key={brand}
+                    variant={selectedBrand === brand ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedBrand(brand)}
+                  >
+                    {brand}
+                  </Button>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -155,14 +217,28 @@ const ProductCatalog = ({ onProductsSelected }: ProductCatalogProps) => {
                       <Package className="h-8 w-8 text-muted-foreground" />
                     </div>
                     <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">{product.brand}</p>
-                    <Badge variant="secondary" className="mb-2">{product.category}</Badge>
+                    <p className="text-sm text-muted-foreground mb-2">{product.brand_name}</p>
+                    <div className="flex gap-2 mb-2">
+                      {product.categories.map(category => (
+                        <Badge key={category.id} variant="secondary">{category.name}</Badge>
+                      ))}
+                    </div>
+                    <div className="mb-2">
+                      <Badge variant="outline" className="text-xs">
+                        UoM: {product.uom}
+                      </Badge>
+                    </div>
                     <p className="text-sm text-muted-foreground">{product.description}</p>
                   </div>
                 </div>
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        {/* Results Info */}
+        <div className="text-center text-muted-foreground mb-6">
+          Showing {filteredProducts.length} of {SAMPLE_PRODUCTS.length} products
         </div>
 
         {/* Continue Button */}

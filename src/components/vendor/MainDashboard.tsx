@@ -4,133 +4,132 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Package, Truck, IndianRupee, Edit, BarChart3, Settings, CheckCircle, XCircle } from "lucide-react";
-import { SelectedProduct } from "@/pages/VendorDashboard";
-
-const CAPACITY_OPTIONS = [
-  "250ml", "500ml", "1L", "2L",
-  "250g", "500g", "1kg", "2kg", "5kg",
-  "1 piece", "6 pieces", "12 pieces"
-];
+import { Package, Truck, IndianRupee, Edit, BarChart3, Settings, CheckCircle, XCircle, Tag, Plus } from "lucide-react";
+import { VendorProduct, Discount } from "@/pages/VendorDashboard";
+import { useToast } from "@/hooks/use-toast";
 
 interface MainDashboardProps {
-  products: SelectedProduct[];
-  onUpdateProduct: (productId: string, updates: Partial<SelectedProduct>) => void;
+  vendorProducts: VendorProduct[];
+  onUpdateVendorProduct: (vendorProductId: string, updates: Partial<VendorProduct>) => void;
 }
 
-const MainDashboard = ({ products, onUpdateProduct }: MainDashboardProps) => {
-  const [editingProduct, setEditingProduct] = useState<SelectedProduct | null>(null);
-  const [editForm, setEditForm] = useState<Partial<SelectedProduct>>({});
+const MainDashboard = ({ vendorProducts, onUpdateVendorProduct }: MainDashboardProps) => {
+  const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
+  const [editForm, setEditForm] = useState<Partial<VendorProduct>>({});
+  const [discounts, setDiscounts] = useState<Discount[]>([]);
+  const [showDiscountDialog, setShowDiscountDialog] = useState(false);
+  const [selectedVendorProduct, setSelectedVendorProduct] = useState<VendorProduct | null>(null);
+  const { toast } = useToast();
 
-  const handleEditClick = (product: SelectedProduct) => {
-    setEditingProduct(product);
-    setEditForm(product);
+  const handleEditClick = (vendorProduct: VendorProduct) => {
+    setEditingProduct(vendorProduct);
+    setEditForm(vendorProduct);
   };
 
   const handleSaveEdit = () => {
     if (editingProduct) {
-      onUpdateProduct(editingProduct.id, editForm);
+      onUpdateVendorProduct(editingProduct.id, editForm);
       setEditingProduct(null);
+      toast({
+        title: "Product updated",
+        description: "Product details have been updated successfully.",
+      });
     }
   };
 
-  const toggleAvailability = (productId: string, isAvailable: boolean) => {
-    onUpdateProduct(productId, { isAvailable });
+  const toggleAvailability = (vendorProductId: string, isActive: boolean) => {
+    onUpdateVendorProduct(vendorProductId, { is_active: isActive });
+    toast({
+      title: isActive ? "Product activated" : "Product deactivated",
+      description: `Product is now ${isActive ? "available" : "unavailable"} for sale.`,
+    });
   };
 
-  const totalProducts = products.length;
-  const availableProducts = products.filter(p => p.isAvailable).length;
-  const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
-  const totalValue = products.reduce((sum, p) => sum + (p.price * p.stock), 0);
+  const handleCreateDiscount = (vendorProduct: VendorProduct) => {
+    setSelectedVendorProduct(vendorProduct);
+    setShowDiscountDialog(true);
+  };
+
+  // Calculate dashboard metrics
+  const totalProducts = vendorProducts.length;
+  const availableProducts = vendorProducts.filter(vp => vp.is_active).length;
+  const totalStock = vendorProducts.reduce((sum, vp) => sum + vp.stock_qty, 0);
+  const totalValue = vendorProducts.reduce((sum, vp) => sum + (vp.price * vp.stock_qty), 0);
 
   return (
-    <div className="min-h-screen bg-gradient-card">
-      {/* Header */}
-      <div className="bg-gradient-primary text-white p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <Package className="h-8 w-8" />
-                <h1 className="text-3xl font-bold">Vendor Dashboard</h1>
+    <div className="space-y-6">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="shadow-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Products</p>
+                <p className="text-2xl font-bold">{totalProducts}</p>
               </div>
-              <p className="text-blue-100">Manage your products, pricing, and inventory</p>
+              <Package className="h-8 w-8 text-primary" />
             </div>
-            <Button variant="secondary" size="sm">
-              <Settings className="h-4 w-4 mr-2" />
-              Settings
-            </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Available</p>
+                <p className="text-2xl font-bold text-success">{availableProducts}</p>
+              </div>
+              <CheckCircle className="h-8 w-8 text-success" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Total Stock</p>
+                <p className="text-2xl font-bold">{totalStock.toFixed(2)}</p>
+              </div>
+              <BarChart3 className="h-8 w-8 text-warning" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-card">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Inventory Value</p>
+                <p className="text-2xl font-bold">₹{totalValue.toLocaleString()}</p>
+              </div>
+              <IndianRupee className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      <div className="max-w-7xl mx-auto p-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Products</p>
-                  <p className="text-2xl font-bold">{totalProducts}</p>
-                </div>
-                <Package className="h-8 w-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Available</p>
-                  <p className="text-2xl font-bold text-success">{availableProducts}</p>
-                </div>
-                <CheckCircle className="h-8 w-8 text-success" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Total Stock</p>
-                  <p className="text-2xl font-bold">{totalStock}</p>
-                </div>
-                <BarChart3 className="h-8 w-8 text-warning" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Inventory Value</p>
-                  <p className="text-2xl font-bold">₹{totalValue.toLocaleString()}</p>
-                </div>
-                <IndianRupee className="h-8 w-8 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Products List */}
-        <Card className="shadow-card">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="h-5 w-5" />
-              Your Products
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+      {/* Products List */}
+      <Card className="shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5" />
+            Your Products Inventory
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {vendorProducts.length === 0 ? (
+            <div className="text-center py-8">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No products configured</h3>
+              <p className="text-muted-foreground">Complete the onboarding process to add products to your inventory</p>
+            </div>
+          ) : (
             <div className="space-y-4">
-              {products.map(product => (
-                <div key={product.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+              {vendorProducts.map(vendorProduct => (
+                <div key={vendorProduct.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4 flex-1">
                       <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
@@ -139,9 +138,11 @@ const MainDashboard = ({ products, onUpdateProduct }: MainDashboardProps) => {
                       
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-lg">{product.name}</h3>
-                          <Badge variant="secondary">{product.category}</Badge>
-                          {product.isAvailable ? (
+                          <h3 className="font-semibold text-lg">{vendorProduct.product.name}</h3>
+                          {vendorProduct.product.categories.map(category => (
+                            <Badge key={category.id} variant="secondary">{category.name}</Badge>
+                          ))}
+                          {vendorProduct.is_active ? (
                             <Badge variant="outline" className="text-success border-success">
                               <CheckCircle className="h-3 w-3 mr-1" />
                               Available
@@ -153,25 +154,29 @@ const MainDashboard = ({ products, onUpdateProduct }: MainDashboardProps) => {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2">{product.brand}</p>
+                        <p className="text-sm text-muted-foreground mb-2">{vendorProduct.product.brand_name}</p>
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
                           <div>
-                            <span className="text-muted-foreground">Price:</span>
-                            <span className="font-semibold ml-1">₹{product.price}</span>
+                            <span className="text-muted-foreground">MRP:</span>
+                            <span className="font-semibold ml-1">₹{vendorProduct.mrp}</span>
                           </div>
                           <div>
-                            <span className="text-muted-foreground">Capacity:</span>
-                            <span className="font-semibold ml-1">{product.capacity}</span>
+                            <span className="text-muted-foreground">Price:</span>
+                            <span className="font-semibold ml-1">₹{vendorProduct.price}</span>
                           </div>
                           <div>
                             <span className="text-muted-foreground">Stock:</span>
-                            <span className="font-semibold ml-1">{product.stock}</span>
+                            <span className="font-semibold ml-1">{vendorProduct.stock_qty} {vendorProduct.product.uom}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Value:</span>
+                            <span className="font-semibold ml-1">₹{(vendorProduct.price * vendorProduct.stock_qty).toFixed(2)}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Truck className="h-4 w-4 text-muted-foreground" />
                             <span className="text-sm">
-                              {product.hasDelivery ? "Self Delivery" : "DropSi Delivery"}
+                              {vendorProduct.delivery_supported ? "Self Delivery" : "DropSi Delivery"}
                             </span>
                           </div>
                         </div>
@@ -179,16 +184,24 @@ const MainDashboard = ({ products, onUpdateProduct }: MainDashboardProps) => {
                     </div>
                     
                     <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCreateDiscount(vendorProduct)}
+                      >
+                        <Tag className="h-4 w-4 mr-1" />
+                        Discount
+                      </Button>
                       <Switch
-                        checked={product.isAvailable}
-                        onCheckedChange={(checked) => toggleAvailability(product.id, checked)}
+                        checked={vendorProduct.is_active}
+                        onCheckedChange={(checked) => toggleAvailability(vendorProduct.id, checked)}
                       />
                       <Dialog>
                         <DialogTrigger asChild>
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => handleEditClick(product)}
+                            onClick={() => handleEditClick(vendorProduct)}
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
@@ -199,27 +212,25 @@ const MainDashboard = ({ products, onUpdateProduct }: MainDashboardProps) => {
                           </DialogHeader>
                           <div className="space-y-4">
                             <div className="space-y-2">
-                              <Label htmlFor="edit-price">Price (₹)</Label>
+                              <Label htmlFor="edit-mrp">MRP (₹)</Label>
                               <Input
-                                id="edit-price"
+                                id="edit-mrp"
                                 type="number"
-                                value={editForm.price || ""}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                                step="0.01"
+                                value={editForm.mrp || ""}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, mrp: parseFloat(e.target.value) || 0 }))}
                               />
                             </div>
                             
                             <div className="space-y-2">
-                              <Label htmlFor="edit-capacity">Capacity/Size</Label>
-                              <Select onValueChange={(value) => setEditForm(prev => ({ ...prev, capacity: value }))}>
-                                <SelectTrigger>
-                                  <SelectValue placeholder={editForm.capacity || "Select capacity"} />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {CAPACITY_OPTIONS.map(option => (
-                                    <SelectItem key={option} value={option}>{option}</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <Label htmlFor="edit-price">Selling Price (₹)</Label>
+                              <Input
+                                id="edit-price"
+                                type="number"
+                                step="0.01"
+                                value={editForm.price || ""}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, price: parseFloat(e.target.value) || 0 }))}
+                              />
                             </div>
                             
                             <div className="space-y-2">
@@ -227,18 +238,19 @@ const MainDashboard = ({ products, onUpdateProduct }: MainDashboardProps) => {
                               <Input
                                 id="edit-stock"
                                 type="number"
-                                value={editForm.stock || ""}
-                                onChange={(e) => setEditForm(prev => ({ ...prev, stock: parseInt(e.target.value) || 0 }))}
+                                step="0.01"
+                                value={editForm.stock_qty || ""}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, stock_qty: parseFloat(e.target.value) || 0 }))}
                               />
                             </div>
                             
                             <div className="flex items-center space-x-2">
                               <Switch
-                                checked={editForm.hasDelivery || false}
-                                onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, hasDelivery: checked }))}
+                                checked={editForm.delivery_supported || false}
+                                onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, delivery_supported: checked }))}
                               />
                               <Label className="text-sm">
-                                {editForm.hasDelivery ? "I provide delivery" : "DropSi handles delivery"}
+                                {editForm.delivery_supported ? "I provide delivery" : "DropSi handles delivery"}
                               </Label>
                             </div>
                             
@@ -253,9 +265,9 @@ const MainDashboard = ({ products, onUpdateProduct }: MainDashboardProps) => {
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

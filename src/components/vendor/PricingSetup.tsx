@@ -4,37 +4,32 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Package, Truck, IndianRupee, ArrowRight } from "lucide-react";
-import { Product, SelectedProduct } from "@/pages/VendorDashboard";
-
-const CAPACITY_OPTIONS = [
-  "250ml", "500ml", "1L", "2L",
-  "250g", "500g", "1kg", "2kg", "5kg",
-  "1 piece", "6 pieces", "12 pieces"
-];
+import { Product, VendorProduct } from "@/pages/VendorDashboard";
+import { useToast } from "@/hooks/use-toast";
 
 interface PricingSetupProps {
   selectedProducts: Product[];
-  onComplete: (products: SelectedProduct[]) => void;
+  onComplete: (vendorProducts: VendorProduct[]) => void;
 }
 
 const PricingSetup = ({ selectedProducts, onComplete }: PricingSetupProps) => {
-  const [productConfigs, setProductConfigs] = useState<Record<string, Partial<SelectedProduct>>>(
+  const [productConfigs, setProductConfigs] = useState<Record<string, Partial<VendorProduct>>>(
     selectedProducts.reduce((acc, product) => ({
       ...acc,
       [product.id]: {
         price: 0,
-        capacity: "",
-        stock: 0,
-        isAvailable: true,
-        hasDelivery: false
+        mrp: 0,
+        stock_qty: 0,
+        is_active: true,
+        delivery_supported: false
       }
     }), {})
   );
+  const { toast } = useToast();
 
-  const updateProductConfig = (productId: string, field: keyof SelectedProduct, value: any) => {
+  const updateProductConfig = (productId: string, field: keyof VendorProduct, value: any) => {
     setProductConfigs(prev => ({
       ...prev,
       [productId]: {
@@ -48,17 +43,65 @@ const PricingSetup = ({ selectedProducts, onComplete }: PricingSetupProps) => {
     return selectedProducts.every(product => {
       const config = productConfigs[product.id];
       return config?.price && config.price > 0 && 
-             config?.capacity && 
-             config?.stock && config.stock > 0;
+             config?.mrp && config.mrp > 0 &&
+             config?.stock_qty && config.stock_qty > 0 &&
+             config.mrp >= config.price; // MRP should be >= selling price
     });
   };
 
-  const handleComplete = () => {
-    const configuredProducts: SelectedProduct[] = selectedProducts.map(product => ({
-      ...product,
-      ...productConfigs[product.id] as Omit<SelectedProduct, keyof Product>
-    }));
-    onComplete(configuredProducts);
+  const handleComplete = async () => {
+    if (!isFormValid()) {
+      toast({
+        title: "Invalid configuration",
+        description: "Please ensure all fields are filled and MRP is greater than or equal to selling price.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // TODO: Replace with actual Supabase insert to vendor_products table
+      // const vendorProductsData = selectedProducts.map(product => ({
+      //   vendor_id: vendorId,
+      //   product_id: product.id,
+      //   price: productConfigs[product.id]?.price || 0,
+      //   mrp: productConfigs[product.id]?.mrp || 0,
+      //   stock_qty: productConfigs[product.id]?.stock_qty || 0,
+      //   is_active: productConfigs[product.id]?.is_active || true,
+      //   delivery_supported: productConfigs[product.id]?.delivery_supported || false
+      // }));
+
+      // const { data, error } = await supabase
+      //   .from('vendor_products')
+      //   .insert(vendorProductsData)
+      //   .select('*, products!inner(*)');
+
+      // Mock the vendor products with proper structure
+      const vendorProducts: VendorProduct[] = selectedProducts.map(product => ({
+        id: `vp-${product.id}`,
+        vendor_id: "vendor-1",
+        product_id: product.id,
+        price: productConfigs[product.id]?.price || 0,
+        mrp: productConfigs[product.id]?.mrp || 0,
+        stock_qty: productConfigs[product.id]?.stock_qty || 0,
+        is_active: productConfigs[product.id]?.is_active || true,
+        delivery_supported: productConfigs[product.id]?.delivery_supported || false,
+        product: product
+      }));
+
+      onComplete(vendorProducts);
+
+      toast({
+        title: "Products configured successfully",
+        description: `${selectedProducts.length} products have been added to your inventory.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Configuration failed",
+        description: "Failed to configure products. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -70,7 +113,7 @@ const PricingSetup = ({ selectedProducts, onComplete }: PricingSetupProps) => {
             <IndianRupee className="h-8 w-8" />
             <h1 className="text-3xl font-bold">Pricing Setup</h1>
           </div>
-          <p className="text-blue-100">Configure pricing, capacity, and stock for your selected products</p>
+          <p className="text-blue-100">Configure pricing, stock, and delivery for your selected products</p>
         </div>
       </div>
 
@@ -86,76 +129,108 @@ const PricingSetup = ({ selectedProducts, onComplete }: PricingSetupProps) => {
                     </div>
                     <div>
                       <h3 className="text-lg font-semibold">{product.name}</h3>
-                      <p className="text-sm text-muted-foreground">{product.brand}</p>
+                      <p className="text-sm text-muted-foreground">{product.brand_name}</p>
+                      <div className="flex gap-1 mt-1">
+                        {product.categories.map(cat => (
+                          <Badge key={cat.id} variant="outline" className="text-xs">{cat.name}</Badge>
+                        ))}
+                        <Badge variant="secondary" className="text-xs">UoM: {product.uom}</Badge>
+                      </div>
                     </div>
                   </div>
-                  <Badge variant="secondary">{product.category}</Badge>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {/* Price */}
+                  {/* MRP */}
                   <div className="space-y-2">
-                    <Label htmlFor={`price-${product.id}`}>Price (₹)</Label>
+                    <Label htmlFor={`mrp-${product.id}`}>MRP (₹)</Label>
+                    <Input
+                      id={`mrp-${product.id}`}
+                      type="number"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={productConfigs[product.id]?.mrp || ""}
+                      onChange={(e) => updateProductConfig(product.id, 'mrp', parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+
+                  {/* Selling Price */}
+                  <div className="space-y-2">
+                    <Label htmlFor={`price-${product.id}`}>Selling Price (₹)</Label>
                     <Input
                       id={`price-${product.id}`}
                       type="number"
+                      step="0.01"
                       placeholder="0.00"
                       value={productConfigs[product.id]?.price || ""}
                       onChange={(e) => updateProductConfig(product.id, 'price', parseFloat(e.target.value) || 0)}
                     />
+                    {productConfigs[product.id]?.price && productConfigs[product.id]?.mrp && 
+                     productConfigs[product.id]?.price! > productConfigs[product.id]?.mrp! && (
+                      <p className="text-xs text-destructive">Price cannot exceed MRP</p>
+                    )}
                   </div>
 
-                  {/* Capacity */}
-                  <div className="space-y-2">
-                    <Label htmlFor={`capacity-${product.id}`}>Capacity/Size</Label>
-                    <Select onValueChange={(value) => updateProductConfig(product.id, 'capacity', value)}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select capacity" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {CAPACITY_OPTIONS.map(option => (
-                          <SelectItem key={option} value={option}>{option}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Stock */}
+                  {/* Stock Quantity */}
                   <div className="space-y-2">
                     <Label htmlFor={`stock-${product.id}`}>Stock Quantity</Label>
                     <Input
                       id={`stock-${product.id}`}
                       type="number"
+                      step="0.01"
                       placeholder="0"
-                      value={productConfigs[product.id]?.stock || ""}
-                      onChange={(e) => updateProductConfig(product.id, 'stock', parseInt(e.target.value) || 0)}
+                      value={productConfigs[product.id]?.stock_qty || ""}
+                      onChange={(e) => updateProductConfig(product.id, 'stock_qty', parseFloat(e.target.value) || 0)}
                     />
+                    <p className="text-xs text-muted-foreground">Per {product.uom}</p>
                   </div>
 
-                  {/* Delivery Toggle */}
+                  {/* Delivery Support */}
                   <div className="space-y-2">
                     <Label htmlFor={`delivery-${product.id}`}>Delivery Service</Label>
                     <div className="flex items-center space-x-2 mt-3">
                       <Switch
                         id={`delivery-${product.id}`}
-                        checked={productConfigs[product.id]?.hasDelivery || false}
-                        onCheckedChange={(checked) => updateProductConfig(product.id, 'hasDelivery', checked)}
+                        checked={productConfigs[product.id]?.delivery_supported || false}
+                        onCheckedChange={(checked) => updateProductConfig(product.id, 'delivery_supported', checked)}
                       />
                       <Label htmlFor={`delivery-${product.id}`} className="text-sm">
-                        {productConfigs[product.id]?.hasDelivery ? "I provide delivery" : "DropSi handles delivery"}
+                        {productConfigs[product.id]?.delivery_supported ? "I provide delivery" : "DropSi handles delivery"}
                       </Label>
                     </div>
                   </div>
                 </div>
 
+                {/* Price Summary */}
+                {productConfigs[product.id]?.price && productConfigs[product.id]?.mrp && (
+                  <div className="mt-4 p-3 bg-muted rounded-lg">
+                    <div className="grid grid-cols-3 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">MRP:</span>
+                        <span className="font-semibold ml-1">₹{productConfigs[product.id]?.mrp}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Your Price:</span>
+                        <span className="font-semibold ml-1">₹{productConfigs[product.id]?.price}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Margin:</span>
+                        <span className="font-semibold ml-1 text-success">
+                          ₹{((productConfigs[product.id]?.mrp || 0) - (productConfigs[product.id]?.price || 0)).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Delivery Info */}
-                <div className="mt-4 p-3 bg-muted rounded-lg">
+                <div className="mt-4 p-3 bg-muted/50 rounded-lg">
                   <div className="flex items-center gap-2 text-sm">
                     <Truck className="h-4 w-4 text-muted-foreground" />
                     <span className="text-muted-foreground">
-                      {productConfigs[product.id]?.hasDelivery 
-                        ? "You'll handle delivery for this product"
+                      {productConfigs[product.id]?.delivery_supported 
+                        ? "You will handle delivery for this product"
                         : "DropSi will assign a delivery partner for this product"
                       }
                     </span>
@@ -178,6 +253,14 @@ const PricingSetup = ({ selectedProducts, onComplete }: PricingSetupProps) => {
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
+
+        {!isFormValid() && (
+          <div className="text-center mt-4">
+            <p className="text-sm text-muted-foreground">
+              Please fill all required fields and ensure selling price does not exceed MRP
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

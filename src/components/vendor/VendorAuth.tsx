@@ -24,7 +24,7 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
     legalName: "",
     displayName: "",
     phone: "",
-    gstin: "",
+    gstIn: "",
     address: ""
   });
   const { toast } = useToast();
@@ -48,10 +48,11 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
           legal_name: "Test Vendor Legal Name",
           display_name: "Test Vendor",
           phone: "+91 9876543210",
-          gstin: "22AAAAA0000A1Z5",
+          gst_in: "22AAAAA0000A1Z5",
           address: "123 Business Street, City, State - 123456",
-          delivery_capability: true,
-          created_at: new Date().toISOString()
+          supports_own_delivery: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
 
         onAuthenticated(mockVendor);
@@ -105,10 +106,11 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
           legal_name: signupForm.legalName,
           display_name: signupForm.displayName,
           phone: signupForm.phone,
-          gstin: signupForm.gstin,
+          gst_in: signupForm.gstIn,
           address: signupForm.address,
-          delivery_capability: true,
-          created_at: new Date().toISOString()
+          supports_own_delivery: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         };
 
         onAuthenticated(mockVendor);
@@ -268,12 +270,12 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="gstin">GSTIN</Label>
+                      <Label htmlFor="gst-in">GSTIN</Label>
                       <Input
-                        id="gstin"
+                        id="gst-in"
                         placeholder="22AAAAA0000A1Z5"
-                        value={signupForm.gstin}
-                        onChange={(e) => setSignupForm(prev => ({ ...prev, gstin: e.target.value }))}
+                        value={signupForm.gstIn}
+                        onChange={(e) => setSignupForm(prev => ({ ...prev, gstIn: e.target.value }))}
                         required
                       />
                     </div>

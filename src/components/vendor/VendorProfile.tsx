@@ -22,8 +22,8 @@ const VendorProfile = ({ vendor, onUpdate }: VendorProfileProps) => {
     phone: vendor.phone || "",
     email: vendor.email || "",
     address: vendor.address || "",
-    gstin: vendor.gstin || "",
-    delivery_capability: vendor.delivery_capability || false
+    gst_in: vendor.gst_in || "",
+    supports_own_delivery: vendor.supports_own_delivery || false
   });
   const { toast } = useToast();
 
@@ -115,11 +115,11 @@ const VendorProfile = ({ vendor, onUpdate }: VendorProfileProps) => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-gstin">GSTIN</Label>
+                  <Label htmlFor="edit-gst-in">GSTIN</Label>
                   <Input
-                    id="edit-gstin"
-                    value={editForm.gstin}
-                    onChange={(e) => setEditForm(prev => ({ ...prev, gstin: e.target.value }))}
+                    id="edit-gst-in"
+                    value={editForm.gst_in}
+                    onChange={(e) => setEditForm(prev => ({ ...prev, gst_in: e.target.value }))}
                   />
                 </div>
 
@@ -134,8 +134,8 @@ const VendorProfile = ({ vendor, onUpdate }: VendorProfileProps) => {
 
                 <div className="flex items-center space-x-2">
                   <Switch
-                    checked={editForm.delivery_capability}
-                    onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, delivery_capability: checked }))}
+                    checked={editForm.supports_own_delivery}
+                    onCheckedChange={(checked) => setEditForm(prev => ({ ...prev, supports_own_delivery: checked }))}
                   />
                   <Label className="text-sm">
                     I provide my own delivery service
@@ -181,7 +181,7 @@ const VendorProfile = ({ vendor, onUpdate }: VendorProfileProps) => {
                 <FileText className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm text-muted-foreground">GSTIN</p>
-                  <p className="font-semibold font-mono">{vendor.gstin}</p>
+                  <p className="font-semibold font-mono">{vendor.gst_in}</p>
                 </div>
               </div>
             </div>
@@ -221,15 +221,15 @@ const VendorProfile = ({ vendor, onUpdate }: VendorProfileProps) => {
                 <div>
                   <p className="font-semibold">Delivery Service</p>
                   <p className="text-sm text-muted-foreground">
-                    {vendor.delivery_capability 
+                    {vendor.supports_own_delivery 
                       ? "You handle your own deliveries"
                       : "DropSi assigns delivery partners"
                     }
                   </p>
                 </div>
               </div>
-              <Badge variant={vendor.delivery_capability ? "default" : "secondary"}>
-                {vendor.delivery_capability ? "Self Delivery" : "DropSi Delivery"}
+              <Badge variant={vendor.supports_own_delivery ? "default" : "secondary"}>
+                {vendor.supports_own_delivery ? "Self Delivery" : "DropSi Delivery"}
               </Badge>
             </div>
           </div>
