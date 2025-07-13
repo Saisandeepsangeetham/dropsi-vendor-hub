@@ -153,15 +153,22 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
       {/* Header */}
       <div className="bg-gradient-primary text-white p-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3 mb-2">
-              {isAddingToExisting && onCancel && (
-                <Button variant="secondary" size="sm" onClick={onCancel} className="mr-2">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
-                </Button>
-              )}
-              <div className="w-10 h-10 rounded-full overflow-hidden">
+          <div className="flex items-center gap-4">
+            {/* Back Button */}
+            {isAddingToExisting && onCancel && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={onCancel} 
+                className="text-white hover:bg-white/20 p-2 rounded-full"
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
+            
+            {/* Logo and Title */}
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full overflow-hidden ring-2 ring-white/20">
                 <img 
                   src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
                   alt="DropSi Logo" 
@@ -169,10 +176,10 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                 />
               </div>
               <div>
-                <h1 className="text-3xl font-bold">
+                <h1 className="text-2xl md:text-3xl font-bold font-poppins">
                   {isAddingToExisting ? "Add More Products" : "DropSi Vendor Portal"}
                 </h1>
-                <p className="text-blue-100">
+                <p className="text-blue-100 text-sm md:text-base font-inter">
                   {isAddingToExisting 
                     ? "Select additional products to add to your inventory" 
                     : "Select products from our standardized catalog to start selling"
