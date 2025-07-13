@@ -136,8 +136,12 @@ const VendorAuth = ({ onAuthenticated }: VendorAuthProps) => {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 bg-gradient-primary rounded-full">
-              <Package className="h-8 w-8 text-white" />
+            <div className="w-16 h-16 rounded-full overflow-hidden">
+              <img 
+                src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
+                alt="DropSi Logo" 
+                className="w-full h-full object-cover"
+              />
             </div>
           </div>
           <h1 className="text-3xl font-bold text-foreground">DropSi Vendor</h1>

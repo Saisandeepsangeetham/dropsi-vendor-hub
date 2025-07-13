@@ -130,7 +130,13 @@ const VendorDashboard = () => {
           <div className="flex items-center justify-between">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <Package className="h-8 w-8" />
+                <div className="w-10 h-10 rounded-full overflow-hidden">
+                  <img 
+                    src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
+                    alt="DropSi Logo" 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <h1 className="text-3xl font-bold">DropSi Vendor Portal</h1>
               </div>
               <p className="text-blue-100">Welcome back, {vendor.display_name}!</p>
