@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Filter, Package, Truck } from "lucide-react";
+import { Search, Filter, Package, Truck, X, Trash2 } from "lucide-react";
 import { Product } from "@/pages/VendorDashboard";
 
 // Mock data matching the database schema
@@ -132,6 +132,16 @@ const ProductCatalog = ({ onProductsSelected }: ProductCatalogProps) => {
     onProductsSelected(selected);
   };
 
+  const handleRemoveSelected = (productId: string) => {
+    const newSelected = new Set(selectedProducts);
+    newSelected.delete(productId);
+    setSelectedProducts(newSelected);
+  };
+
+  const handleClearAll = () => {
+    setSelectedProducts(new Set());
+  };
+
   return (
     <div className="min-h-screen bg-gradient-card">
       {/* Header */}
@@ -209,38 +219,105 @@ const ProductCatalog = ({ onProductsSelected }: ProductCatalogProps) => {
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
-          {filteredProducts.map(product => (
-            <Card key={product.id} className="shadow-card hover:shadow-hover transition-all duration-300">
+          {filteredProducts.map(product => {
+            const isSelected = selectedProducts.has(product.id);
+            
+            return (
+              <Card 
+                key={product.id} 
+                className={`shadow-card hover-lift transition-all duration-300 ${
+                  isSelected ? 'ring-2 ring-primary/50 bg-primary/5' : ''
+                }`}
+              >
               <CardContent className="p-4">
                 <div className="flex items-start space-x-4">
                   <Checkbox
-                    checked={selectedProducts.has(product.id)}
+                    checked={isSelected}
                     onCheckedChange={() => handleProductToggle(product.id)}
                     className="mt-1"
                   />
                   <div className="flex-1">
-                    <div className="w-16 h-16 bg-muted rounded-lg mb-3 flex items-center justify-center">
+                    <div className="w-16 h-16 bg-muted rounded-xl mb-3 flex items-center justify-center">
                       <Package className="h-8 w-8 text-muted-foreground" />
                     </div>
-                    <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
+                    <h3 className="font-semibold text-lg mb-1 font-poppins">{product.name}</h3>
                     <p className="text-sm text-muted-foreground mb-2">{product.brand_name}</p>
                     <div className="flex gap-2 mb-2">
                       {product.categories.map(category => (
-                        <Badge key={category.id} variant="secondary">{category.name}</Badge>
+                        <Badge key={category.id} variant="secondary" className="rounded-full">{category.name}</Badge>
                       ))}
                     </div>
                     <div className="mb-2">
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs rounded-full">
                         UoM: {product.uom}
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground">{product.description}</p>
                   </div>
+                  {isSelected && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveSelected(product.id)}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          ))}
+          );
+          })}
         </div>
+
+        {/* Selected Products Section */}
+        {selectedProducts.size > 0 && (
+          <Card className="mb-6 shadow-card">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold font-poppins">Selected Products ({selectedProducts.size})</h3>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleClearAll}
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Clear All
+                </Button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                {Array.from(selectedProducts).map(productId => {
+                  const product = SAMPLE_PRODUCTS.find(p => p.id === productId);
+                  if (!product) return null;
+                  
+                  return (
+                    <div key={product.id} className="flex items-center justify-between p-3 bg-primary/5 rounded-xl border border-primary/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
+                          <Package className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{product.name}</p>
+                          <p className="text-xs text-muted-foreground">{product.brand_name}</p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveSelected(product.id)}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Results Info */}
         <div className="text-center text-muted-foreground mb-6">
@@ -249,14 +326,14 @@ const ProductCatalog = ({ onProductsSelected }: ProductCatalogProps) => {
 
         {/* Continue Button */}
         {selectedProducts.size > 0 && (
-          <div className="fixed bottom-6 right-6">
-            <Card className="shadow-hover">
+          <div className="fixed bottom-6 right-6 z-50">
+            <Card className="shadow-large hover-lift">
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                  <div className="text-sm">
-                    <span className="font-semibold">{selectedProducts.size}</span> products selected
+                  <div className="text-sm font-medium">
+                    <span className="font-semibold text-primary">{selectedProducts.size}</span> products selected
                   </div>
-                  <Button onClick={handleContinue} className="flex items-center gap-2">
+                  <Button onClick={handleContinue} className="btn-primary-modern flex items-center gap-2">
                     Continue to Pricing
                     <Truck className="h-4 w-4" />
                   </Button>
