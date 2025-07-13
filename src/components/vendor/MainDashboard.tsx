@@ -6,7 +6,9 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Package, Truck, IndianRupee, Edit, BarChart3, Settings, CheckCircle, XCircle, Tag, Plus, Trash2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Package, Truck, IndianRupee, Edit, BarChart3, Settings, CheckCircle, XCircle, Tag, Plus, Trash2, Save, Percent } from "lucide-react";
 import { VendorProduct, Discount } from "@/pages/VendorDashboard";
 import { useToast } from "@/hooks/use-toast";
 
@@ -20,9 +22,17 @@ interface MainDashboardProps {
 const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorProduct, onAddMoreProducts }: MainDashboardProps) => {
   const [editingProduct, setEditingProduct] = useState<VendorProduct | null>(null);
   const [editForm, setEditForm] = useState<Partial<VendorProduct>>({});
-  const [discounts, setDiscounts] = useState<Discount[]>([]);
   const [showDiscountDialog, setShowDiscountDialog] = useState(false);
   const [selectedVendorProduct, setSelectedVendorProduct] = useState<VendorProduct | null>(null);
+  const [newDiscount, setNewDiscount] = useState({
+    discount_type: "percentage" as "percentage" | "flat",
+    discount_value: 0,
+    card_title: "",
+    description: "",
+    terms: "",
+    starts_at: "",
+    ends_at: ""
+  });
   const { toast } = useToast();
 
   const handleEditClick = (vendorProduct: VendorProduct) => {
@@ -59,7 +69,66 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
 
   const handleCreateDiscount = (vendorProduct: VendorProduct) => {
     setSelectedVendorProduct(vendorProduct);
+    setNewDiscount({
+      discount_type: "percentage",
+      discount_value: 0,
+      card_title: "",
+      description: "",
+      terms: "",
+      starts_at: "",
+      ends_at: ""
+    });
     setShowDiscountDialog(true);
+  };
+
+  const calculateDiscountedPrice = (originalPrice: number, discountType: "percentage" | "flat", discountValue: number) => {
+    if (discountType === "percentage") {
+      return originalPrice - (originalPrice * discountValue / 100);
+    } else {
+      return originalPrice - discountValue;
+    }
+  };
+
+  const handleSaveDiscount = async () => {
+    if (!selectedVendorProduct || !newDiscount.card_title || !newDiscount.discount_value) {
+      toast({
+        title: "Missing information",
+        description: "Please fill all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // TODO: Replace with actual Supabase insert
+      // const { error } = await supabase
+      //   .from('discounts')
+      //   .insert([{
+      //     vendor_product_id: selectedVendorProduct.id,
+      //     ...newDiscount,
+      //     discounted_price: calculateDiscountedPrice(selectedVendorProduct.price, newDiscount.discount_type, newDiscount.discount_value)
+      //   }]);
+
+      const discountedPrice = calculateDiscountedPrice(
+        selectedVendorProduct.price,
+        newDiscount.discount_type,
+        newDiscount.discount_value
+      );
+
+      setShowDiscountDialog(false);
+      setSelectedVendorProduct(null);
+
+      toast({
+        title: "Discount created successfully",
+        description: `Discount "${newDiscount.card_title}" has been created for ${selectedVendorProduct.product.name}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Failed to create discount",
+        description: "Please try again or contact support.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Calculate dashboard metrics
@@ -200,14 +269,146 @@ const MainDashboard = ({ vendorProducts, onUpdateVendorProduct, onRemoveVendorPr
                     </div>
                     
                     <div className="flex items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleCreateDiscount(vendorProduct)}
-                      >
-                        <Tag className="h-4 w-4 mr-1" />
-                        Discount
-                      </Button>
+                      <Dialog open={showDiscountDialog} onOpenChange={setShowDiscountDialog}>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleCreateDiscount(vendorProduct)}
+                          >
+                            <Tag className="h-4 w-4 mr-1" />
+                            Discount
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                          <DialogHeader>
+                            <DialogTitle>Create Discount for {selectedVendorProduct?.product.name}</DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="discount-type">Discount Type</Label>
+                                <Select 
+                                  value={newDiscount.discount_type} 
+                                  onValueChange={(value: "percentage" | "flat") => setNewDiscount(prev => ({ ...prev, discount_type: value }))}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="percentage">Percentage (%)</SelectItem>
+                                    <SelectItem value="flat">Flat Amount (₹)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="discount-value">
+                                  Discount Value {newDiscount.discount_type === "percentage" ? "(%)" : "(₹)"}
+                                </Label>
+                                <Input
+                                  id="discount-value"
+                                  type="number"
+                                  step="0.01"
+                                  value={newDiscount.discount_value || ""}
+                                  onChange={(e) => setNewDiscount(prev => ({ ...prev, discount_value: parseFloat(e.target.value) || 0 }))}
+                                />
+                              </div>
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="card-title">Discount Title</Label>
+                              <Input
+                                id="card-title"
+                                placeholder="e.g., Weekend Special, Flash Sale"
+                                value={newDiscount.card_title || ""}
+                                onChange={(e) => setNewDiscount(prev => ({ ...prev, card_title: e.target.value }))}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="description">Description</Label>
+                              <Textarea
+                                id="description"
+                                placeholder="Describe the discount offer"
+                                value={newDiscount.description || ""}
+                                onChange={(e) => setNewDiscount(prev => ({ ...prev, description: e.target.value }))}
+                              />
+                            </div>
+
+                            <div className="space-y-2">
+                              <Label htmlFor="terms">Terms & Conditions</Label>
+                              <Textarea
+                                id="terms"
+                                placeholder="Enter terms and conditions"
+                                value={newDiscount.terms || ""}
+                                onChange={(e) => setNewDiscount(prev => ({ ...prev, terms: e.target.value }))}
+                              />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label htmlFor="start-date">Start Date & Time</Label>
+                                <Input
+                                  id="start-date"
+                                  type="datetime-local"
+                                  value={newDiscount.starts_at || ""}
+                                  onChange={(e) => setNewDiscount(prev => ({ ...prev, starts_at: e.target.value }))}
+                                />
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label htmlFor="end-date">End Date & Time (Optional)</Label>
+                                <Input
+                                  id="end-date"
+                                  type="datetime-local"
+                                  value={newDiscount.ends_at || ""}
+                                  onChange={(e) => setNewDiscount(prev => ({ ...prev, ends_at: e.target.value }))}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Price Preview */}
+                            {selectedVendorProduct && newDiscount.discount_value > 0 && (
+                              <div className="p-4 bg-muted rounded-lg">
+                                <h4 className="font-semibold mb-2">Price Preview</h4>
+                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                  <div>
+                                    <span className="text-muted-foreground">Original Price:</span>
+                                    <span className="font-semibold ml-1">₹{selectedVendorProduct.price}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {newDiscount.discount_type === "percentage" ? (
+                                      <Percent className="h-3 w-3" />
+                                    ) : (
+                                      <IndianRupee className="h-3 w-3" />
+                                    )}
+                                    <span className="font-medium">
+                                      {newDiscount.discount_value}{newDiscount.discount_type === "percentage" ? "%" : "₹"} off
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-muted-foreground">Final Price:</span>
+                                    <span className="font-semibold ml-1 text-success">
+                                      ₹{calculateDiscountedPrice(selectedVendorProduct.price, newDiscount.discount_type, newDiscount.discount_value).toFixed(2)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            <div className="flex justify-end gap-2">
+                              <Button variant="outline" onClick={() => setShowDiscountDialog(false)}>
+                                Cancel
+                              </Button>
+                              <Button onClick={handleSaveDiscount}>
+                                <Save className="h-4 w-4 mr-2" />
+                                Create Discount
+                              </Button>
+                            </div>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                       <Button
                         variant="outline"
                         size="sm"
