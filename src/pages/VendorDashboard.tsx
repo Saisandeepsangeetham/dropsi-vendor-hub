@@ -9,7 +9,7 @@ import PricingSetup from "@/components/vendor/PricingSetup";
 import MainDashboard from "@/components/vendor/MainDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { LogOut, User, MapPin, BarChart3, Package, Tag } from "lucide-react";
+import { LogOut, User, MapPin, BarChart3, Package, Tag, Bell } from "lucide-react";
 
 export type Brand = {
   id: string;
@@ -159,23 +159,35 @@ const VendorDashboard = () => {
       <div className="bg-gradient-primary text-white p-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <img 
-                    src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
-                    alt="DropSi Logo" 
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <h1 className="text-3xl font-bold">DropSi Vendor Portal</h1>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-white/20">
+                <img 
+                  src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
+                  alt="DropSi Logo" 
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <p className="text-blue-100">Welcome back, {vendor.display_name}!</p>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-bold font-poppins">DropSi Vendor Portal</h1>
+                <p className="text-blue-100 font-inter">Welcome back, {vendor.display_name}!</p>
+              </div>
             </div>
-            <Button variant="secondary" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-2" />
-              Logout
-            </Button>
+            
+            <div className="flex items-center gap-3">
+              {/* Notification Icon */}
+              <Button variant="ghost" size="sm" className="relative text-white hover:bg-white/20 p-2 rounded-full">
+                <Bell className="h-5 w-5" />
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-xs text-white font-semibold">3</span>
+                </div>
+              </Button>
+              
+              {/* Logout Button */}
+              <Button variant="secondary" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </div>
           </div>
         </div>
       </div>
