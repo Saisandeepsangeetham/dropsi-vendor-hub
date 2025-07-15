@@ -48,7 +48,7 @@ DropSi Vendor Hub is a comprehensive dashboard for grocery retailers partnering 
 <div align="center">
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/react/react-original.svg" width="50" height="50" alt="React" title="React" />
   <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/typescript/typescript-original.svg" width="50" height="50" alt="TypeScript" title="TypeScript" />
-  <img src="https://github.com/devicons/devicon/tree/v2.16.0/icons/tailwindcss/tailwindcss-plain.svg" width="50" height="50" alt="Tailwind CSS" title="Tailwind CSS" />
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/Tailwind_CSS_Logo.svg/2560px-Tailwind_CSS_Logo.svg.png" width="50" height="50" alt="Tailwind CSS" title="Tailwind CSS" />
   <img src="https://vitejs.dev/logo.svg" width="50" height="50" alt="Vite" title="Vite" />
 </div>
 
