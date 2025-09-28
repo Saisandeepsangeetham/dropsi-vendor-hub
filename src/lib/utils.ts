@@ -22,7 +22,7 @@ export function toTitleCase(text: string): string {
     .join(' ');
 }
 
-const API_BASE_URL = 'https://api.dropsi.in';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
 
 // Utility function to convert snake_case to camelCase
 export function snakeToCamel(obj: any): any {
