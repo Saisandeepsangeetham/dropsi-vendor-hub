@@ -4,18 +4,31 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Eye, EyeOff, Package, Truck, Mail, Lock, BarChart3, Clock, ShoppingCart, CreditCard } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Package,
+  Truck,
+  Mail,
+  Lock,
+  BarChart3,
+  Clock,
+  ShoppingCart,
+  CreditCard,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import Iridescence from "@/Backgrounds/Iridescence/Iridescence";
+import { useTranslation } from "react-i18next";
 
 const VendorAuth = () => {
+  const { t } = useTranslation();
   const [showPassword, setShowPassword] = useState(false);
   const [flippedCard, setFlippedCard] = useState<number | null>(null);
-  
+
   const [loginForm, setLoginForm] = useState({
     email: "",
-    password: ""
+    password: "",
   });
   const [signupForm, setSignupForm] = useState({
     email: "",
@@ -25,25 +38,28 @@ const VendorAuth = () => {
     phone: "",
     gstin: "",
     address: "",
-    supportsOwnDelivery: false
+    supportsOwnDelivery: false,
   });
-  
+
   const { toast } = useToast();
   const { login, register, isLoading } = useAuth();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       await login(loginForm.email, loginForm.password);
       toast({
-        title: "Login successful",
-        description: "Welcome to your vendor dashboard!",
+        title: t("vendor_auth.login_successful"),
+        description: t("vendor_auth.welcome_dashboard"),
       });
     } catch (error) {
       toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Please check your credentials and try again.",
+        title: t("vendor_auth.login_failed"),
+        description:
+          error instanceof Error
+            ? error.message
+            : t("vendor_auth.check_credentials"),
         variant: "destructive",
       });
     }
@@ -51,7 +67,7 @@ const VendorAuth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       await register({
         legalName: signupForm.legalName,
@@ -61,17 +77,20 @@ const VendorAuth = () => {
         phone: signupForm.phone || undefined,
         gstin: signupForm.gstin || undefined,
         address: signupForm.address || undefined,
-        supportsOwnDelivery: signupForm.supportsOwnDelivery
+        supportsOwnDelivery: signupForm.supportsOwnDelivery,
       });
-      
+
       toast({
-        title: "Account created successfully",
-        description: "Welcome to DropSi vendor portal!",
+        title: t("vendor_auth.account_created"),
+        description: t("vendor_auth.welcome_portal"),
       });
     } catch (error) {
       toast({
-        title: "Signup failed",
-        description: error instanceof Error ? error.message : "Please try again or contact support.",
+        title: t("vendor_auth.signup_failed"),
+        description:
+          error instanceof Error
+            ? error.message
+            : t("vendor_auth.try_again_support"),
         variant: "destructive",
       });
     }
@@ -87,78 +106,95 @@ const VendorAuth = () => {
             alt="DropSi Logo"
             className="w-16 h-16 object-cover rounded-full"
           />
-          <h1 className="text-4xl font-extrabold">Partner with DropSi</h1>
+          <h1 className="text-4xl font-extrabold">
+            {t("vendor_auth.partner_with_dropsi")}
+          </h1>
         </div>
         <p className="text-lg max-w-md leading-relaxed text-center">
-          Grow your grocery business with seamless product management,
-          flexible delivery, and real-time analytics.
+          {t("vendor_auth.grow_business_desc")}
         </p>
         <div className="grid grid-cols-2 gap-6 w-full max-w-lg">
           {/* Card 1 - Product Catalog */}
           <div className="relative h-48 perspective-1000">
-            <div 
-              className={`absolute w-full h-full transition-all duration-500 transform-style-3d ${flippedCard === 0 ? 'rotate-y-180' : ''}`}
+            <div
+              className={`absolute w-full h-full transition-all duration-500 transform-style-3d ${
+                flippedCard === 0 ? "rotate-y-180" : ""
+              }`}
               onMouseEnter={() => setFlippedCard(0)}
             >
               <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 absolute w-full h-full backface-hidden">
                 <div className="flex justify-center mb-2">
                   <Package className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">Standardized Product Catalog</h3>
+                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">
+                  {t("vendor_auth.standardized_catalog")}
+                </h3>
                 <p className="text-sm text-white opacity-90 mt-2 line-clamp-2">
-                  Access thousands of curated grocery items ready to sell.
+                  {t("vendor_auth.access_thousands")}
                 </p>
               </Card>
               <Card className="p-6 bg-white/10 backdrop-blur-md border border-white/30 absolute w-full h-full backface-hidden rotate-y-180">
                 <div className="flex justify-center mb-2">
                   <ShoppingCart className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">Easy Inventory Management</h3>
+                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">
+                  {t("vendor_auth.easy_inventory")}
+                </h3>
                 <p className="text-sm text-white opacity-90 mt-2 line-clamp-2">
-                  Update prices and stock with just a few clicks.
+                  {t("vendor_auth.update_prices")}
                 </p>
               </Card>
             </div>
           </div>
-          
+
           {/* Card 2 - Delivery Options */}
           <div className="relative h-48 perspective-1000">
-            <div 
-              className={`absolute w-full h-full transition-all duration-500 transform-style-3d ${flippedCard === 1 ? 'rotate-y-180' : ''}`}
+            <div
+              className={`absolute w-full h-full transition-all duration-500 transform-style-3d ${
+                flippedCard === 1 ? "rotate-y-180" : ""
+              }`}
               onMouseEnter={() => setFlippedCard(1)}
             >
               <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 absolute w-full h-full backface-hidden">
                 <div className="flex justify-center mb-2">
                   <Truck className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">Flexible Delivery Options</h3>
+                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">
+                  {t("vendor_auth.flexible_delivery")}
+                </h3>
                 <p className="text-sm text-white opacity-90 mt-2 line-clamp-2">
-                  Choose self-delivery or leverage DropSi's partner network.
+                  {t("vendor_auth.choose_delivery")}
                 </p>
               </Card>
               <Card className="p-6 bg-white/10 backdrop-blur-md border border-white/30 absolute w-full h-full backface-hidden rotate-y-180">
                 <div className="flex justify-center mb-2">
                   <Clock className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">Real-Time Order Tracking</h3>
+                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">
+                  {t("vendor_auth.realtime_tracking")}
+                </h3>
                 <p className="text-sm text-white opacity-90 mt-2 line-clamp-2">
-                  Monitor deliveries from pickup to customer doorstep.
+                  {t("vendor_auth.monitor_deliveries")}
                 </p>
               </Card>
             </div>
           </div>
-          
+
           {/* Card 3 - Analytics */}
           <div className="relative h-48 perspective-1000">
-            <div 
-              className={`absolute w-full h-full transition-all duration-500 transform-style-3d ${flippedCard === 2 ? 'rotate-y-180' : ''}`}
+            <div
+              className={`absolute w-full h-full transition-all duration-500 transform-style-3d ${
+                flippedCard === 2 ? "rotate-y-180" : ""
+              }`}
               onMouseEnter={() => setFlippedCard(2)}
             >
               <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 absolute w-full h-full backface-hidden">
                 <div className="flex justify-center mb-2">
                   <BarChart3 className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">Performance Analytics</h3>
+                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">
+                  Performance Analytics
+                </h3>
                 <p className="text-sm text-white opacity-90 mt-2 line-clamp-2">
                   Gain insights with detailed sales and customer reports.
                 </p>
@@ -167,25 +203,31 @@ const VendorAuth = () => {
                 <div className="flex justify-center mb-2">
                   <BarChart3 className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">Growth Metrics</h3>
+                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">
+                  Growth Metrics
+                </h3>
                 <p className="text-sm text-white opacity-90 mt-2 line-clamp-2">
                   Track your business growth with comprehensive dashboards.
                 </p>
               </Card>
             </div>
           </div>
-          
+
           {/* Card 4 - Payments */}
           <div className="relative h-48 perspective-1000">
-            <div 
-              className={`absolute w-full h-full transition-all duration-500 transform-style-3d ${flippedCard === 3 ? 'rotate-y-180' : ''}`}
+            <div
+              className={`absolute w-full h-full transition-all duration-500 transform-style-3d ${
+                flippedCard === 3 ? "rotate-y-180" : ""
+              }`}
               onMouseEnter={() => setFlippedCard(3)}
             >
               <Card className="p-6 bg-white/20 backdrop-blur-md border border-white/30 absolute w-full h-full backface-hidden">
                 <div className="flex justify-center mb-2">
                   <CreditCard className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">Seamless Payments</h3>
+                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">
+                  Seamless Payments
+                </h3>
                 <p className="text-sm text-white opacity-90 mt-2 line-clamp-2">
                   Get paid quickly with automated payment processing.
                 </p>
@@ -194,7 +236,9 @@ const VendorAuth = () => {
                 <div className="flex justify-center mb-2">
                   <CreditCard className="w-8 h-8 text-white" />
                 </div>
-                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">Financial Reports</h3>
+                <h3 className="text-lg font-semibold mt-4 text-white line-clamp-2">
+                  Financial Reports
+                </h3>
                 <p className="text-sm text-white opacity-90 mt-2 line-clamp-2">
                   Download detailed statements for accounting purposes.
                 </p>
@@ -217,19 +261,25 @@ const VendorAuth = () => {
         <div className="absolute inset-0 bg-white/60 backdrop-blur-sm"></div>
         <div className="w-full max-w-md space-y-8 relative z-10">
           <div className="text-center space-y-2">
-            <h2 className="text-3xl font-extrabold text-foreground">Welcome Back</h2>
-            <p className="text-muted-foreground">Sign in or create your vendor account</p>
+            <h2 className="text-3xl font-extrabold text-foreground">
+              {t("vendor_auth.welcome_back")}
+            </h2>
+            <p className="text-muted-foreground">
+              {t("vendor_auth.sign_in_create")}
+            </p>
           </div>
 
           <Card className="shadow-card backdrop-blur-sm/10 border border-white/20 bg-white/70">
             <CardHeader>
-              <CardTitle className="text-center text-2xl">Get Started</CardTitle>
+              <CardTitle className="text-center text-2xl">
+                {t("vendor_auth.get_started")}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <Tabs defaultValue="login" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="login">Login</TabsTrigger>
-                  <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                  <TabsTrigger value="login">{t("common.login")}</TabsTrigger>
+                  <TabsTrigger value="signup">{t("common.signup")}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="login">
@@ -243,7 +293,12 @@ const VendorAuth = () => {
                           type="email"
                           placeholder="vendor@example.com"
                           value={loginForm.email}
-                          onChange={(e) => setLoginForm(prev => ({ ...prev, email: e.target.value }))}
+                          onChange={(e) =>
+                            setLoginForm((prev) => ({
+                              ...prev,
+                              email: e.target.value,
+                            }))
+                          }
                           required
                           disabled={isLoading}
                           className="pl-10"
@@ -260,7 +315,12 @@ const VendorAuth = () => {
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your password"
                           value={loginForm.password}
-                          onChange={(e) => setLoginForm(prev => ({ ...prev, password: e.target.value }))}
+                          onChange={(e) =>
+                            setLoginForm((prev) => ({
+                              ...prev,
+                              password: e.target.value,
+                            }))
+                          }
                           required
                           disabled={isLoading}
                           className="pl-10"
@@ -273,13 +333,24 @@ const VendorAuth = () => {
                           onClick={() => setShowPassword(!showPassword)}
                           disabled={isLoading}
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
 
-                    <Button type="submit" className="w-full" variant="gradient" disabled={isLoading}>
-                      {isLoading ? "Signing in..." : "Sign In"}
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      variant="gradient"
+                      disabled={isLoading}
+                    >
+                      {isLoading
+                        ? t("vendor_auth.signing_in")
+                        : t("vendor_auth.sign_in")}
                     </Button>
                   </form>
                 </TabsContent>
@@ -288,23 +359,37 @@ const VendorAuth = () => {
                   <form onSubmit={handleSignup} className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="legal-name">Legal Name</Label>
+                        <Label htmlFor="legal-name">
+                          {t("vendor_auth.legal_name")}
+                        </Label>
                         <Input
                           id="legal-name"
-                          placeholder="Legal business name"
+                          placeholder={t("vendor_auth.legal_business_name")}
                           value={signupForm.legalName}
-                          onChange={(e) => setSignupForm(prev => ({ ...prev, legalName: e.target.value }))}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({
+                              ...prev,
+                              legalName: e.target.value,
+                            }))
+                          }
                           required
                           disabled={isLoading}
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="display-name">Display Name</Label>
+                        <Label htmlFor="display-name">
+                          {t("vendor_auth.display_name")}
+                        </Label>
                         <Input
                           id="display-name"
-                          placeholder="Store display name"
+                          placeholder={t("vendor_auth.store_display_name")}
                           value={signupForm.displayName}
-                          onChange={(e) => setSignupForm(prev => ({ ...prev, displayName: e.target.value }))}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({
+                              ...prev,
+                              displayName: e.target.value,
+                            }))
+                          }
                           required
                           disabled={isLoading}
                         />
@@ -320,7 +405,12 @@ const VendorAuth = () => {
                           type="email"
                           placeholder="vendor@example.com"
                           value={signupForm.email}
-                          onChange={(e) => setSignupForm(prev => ({ ...prev, email: e.target.value }))}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({
+                              ...prev,
+                              email: e.target.value,
+                            }))
+                          }
                           required
                           disabled={isLoading}
                           className="pl-10"
@@ -337,7 +427,12 @@ const VendorAuth = () => {
                           type={showPassword ? "text" : "password"}
                           placeholder="Create a password"
                           value={signupForm.password}
-                          onChange={(e) => setSignupForm(prev => ({ ...prev, password: e.target.value }))}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({
+                              ...prev,
+                              password: e.target.value,
+                            }))
+                          }
                           required
                           disabled={isLoading}
                           className="pl-10"
@@ -350,7 +445,11 @@ const VendorAuth = () => {
                           onClick={() => setShowPassword(!showPassword)}
                           disabled={isLoading}
                         >
-                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          {showPassword ? (
+                            <EyeOff className="h-4 w-4" />
+                          ) : (
+                            <Eye className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
@@ -362,7 +461,12 @@ const VendorAuth = () => {
                           id="phone"
                           placeholder="+91 9876543210"
                           value={signupForm.phone}
-                          onChange={(e) => setSignupForm(prev => ({ ...prev, phone: e.target.value }))}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({
+                              ...prev,
+                              phone: e.target.value,
+                            }))
+                          }
                           disabled={isLoading}
                         />
                       </div>
@@ -372,7 +476,12 @@ const VendorAuth = () => {
                           id="gstin"
                           placeholder="22AAAAA0000A1Z5"
                           value={signupForm.gstin}
-                          onChange={(e) => setSignupForm(prev => ({ ...prev, gstin: e.target.value }))}
+                          onChange={(e) =>
+                            setSignupForm((prev) => ({
+                              ...prev,
+                              gstin: e.target.value,
+                            }))
+                          }
                           disabled={isLoading}
                         />
                       </div>
@@ -384,7 +493,12 @@ const VendorAuth = () => {
                         id="address"
                         placeholder="123 Business Street, City, State - 123456"
                         value={signupForm.address}
-                        onChange={(e) => setSignupForm(prev => ({ ...prev, address: e.target.value }))}
+                        onChange={(e) =>
+                          setSignupForm((prev) => ({
+                            ...prev,
+                            address: e.target.value,
+                          }))
+                        }
                         disabled={isLoading}
                       />
                     </div>
@@ -394,7 +508,12 @@ const VendorAuth = () => {
                         type="checkbox"
                         id="supports-delivery"
                         checked={signupForm.supportsOwnDelivery}
-                        onChange={(e) => setSignupForm(prev => ({ ...prev, supportsOwnDelivery: e.target.checked }))}
+                        onChange={(e) =>
+                          setSignupForm((prev) => ({
+                            ...prev,
+                            supportsOwnDelivery: e.target.checked,
+                          }))
+                        }
                         disabled={isLoading}
                       />
                       <Label htmlFor="supports-delivery" className="text-sm">
@@ -402,8 +521,15 @@ const VendorAuth = () => {
                       </Label>
                     </div>
 
-                    <Button type="submit" className="w-full" variant="gradient" disabled={isLoading}>
-                      {isLoading ? "Creating account..." : "Create Account"}
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      variant="gradient"
+                      disabled={isLoading}
+                    >
+                      {isLoading
+                        ? t("vendor_auth.creating_account")
+                        : t("vendor_auth.create_account")}
                     </Button>
                   </form>
                 </TabsContent>

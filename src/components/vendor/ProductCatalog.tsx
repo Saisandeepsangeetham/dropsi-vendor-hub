@@ -4,13 +4,29 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Filter, Package, Truck, X, Trash2, ArrowLeft, CheckCircle, Loader2, ChevronDown, Image as ImageIcon, DollarSign, ShoppingCart, LogOut } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Package,
+  Truck,
+  X,
+  Trash2,
+  ArrowLeft,
+  CheckCircle,
+  Loader2,
+  ChevronDown,
+  Image as ImageIcon,
+  DollarSign,
+  ShoppingCart,
+  LogOut,
+} from "lucide-react";
 import { Product, VendorProduct, ProductManager } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import Loading from "@/components/ui/loading";
 import { toTitleCase } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -50,14 +66,22 @@ interface ProductPricing {
     mrp_display?: string;
     sellingPrice_display?: string;
     stockQty_display?: string;
-  }
+  };
 }
 
-const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAddingToExisting = false, onCancel }: ProductCatalogProps) => {
+const ProductCatalog = ({
+  onProductsSelected,
+  existingVendorProducts = [],
+  isAddingToExisting = false,
+  onCancel,
+}: ProductCatalogProps) => {
+  const { t } = useTranslation();
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedBrand, setSelectedBrand] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
+    new Set()
+  );
   const [products, setProducts] = useState<Product[]>([]);
   const [productPricing, setProductPricing] = useState<ProductPricing>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -69,7 +93,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   const { vendor, logout } = useAuth();
 
   // Get existing product IDs to show them as already added
-  const existingProductIds = new Set(existingVendorProducts.map(vp => vp.productId));
+  const existingProductIds = new Set(
+    existingVendorProducts.map((vp) => vp.productId)
+  );
 
   // Load products from API
   useEffect(() => {
@@ -80,10 +106,13 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
         const allProducts = await ProductManager.getAllProducts();
         setProducts(allProducts);
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to load products');
+        setError(
+          error instanceof Error ? error.message : "Failed to load products"
+        );
         toast({
           title: "Error loading products",
-          description: error instanceof Error ? error.message : "Please try again later.",
+          description:
+            error instanceof Error ? error.message : "Please try again later.",
           variant: "destructive",
         });
       } finally {
@@ -97,33 +126,42 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   // Initialize product pricing when products are selected
   useEffect(() => {
     const newPricing: ProductPricing = {};
-    
-    selectedProducts.forEach(productId => {
+
+    selectedProducts.forEach((productId) => {
       if (!productPricing[productId]) {
         newPricing[productId] = {
           mrp: 0,
           sellingPrice: 0,
           stockQty: 0,
-          deliverySupported: true
+          deliverySupported: true,
         };
       }
     });
-    
+
     if (Object.keys(newPricing).length > 0) {
-      setProductPricing(prev => ({...prev, ...newPricing}));
+      setProductPricing((prev) => ({ ...prev, ...newPricing }));
     }
   }, [selectedProducts]);
 
   // Get unique categories and brands from products
-  const categories = ["All", ...Array.from(new Set(products.map(p => p.brandName)))];
-  const brands = ["All", ...Array.from(new Set(products.map(p => p.brandName)))];
+  const categories = [
+    "All",
+    ...Array.from(new Set(products.map((p) => p.brandName))),
+  ];
+  const brands = [
+    "All",
+    ...Array.from(new Set(products.map((p) => p.brandName))),
+  ];
 
-  const filteredProducts = products.filter(product => {
-    const matchesCategory = selectedCategory === "All" || product.brandName === selectedCategory;
-    const matchesBrand = selectedBrand === "All" || product.brandName === selectedBrand;
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.brandName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProducts = products.filter((product) => {
+    const matchesCategory =
+      selectedCategory === "All" || product.brandName === selectedCategory;
+    const matchesBrand =
+      selectedBrand === "All" || product.brandName === selectedBrand;
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.brandName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesBrand && matchesSearch && product.isActive;
   });
 
@@ -155,12 +193,14 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
 
   // Check if form is valid
   const isFormValid = () => {
-    return Array.from(selectedProducts).every(productId => {
+    return Array.from(selectedProducts).every((productId) => {
       const config = productPricing[productId];
-      return config?.sellingPrice > 0 && 
-             config?.mrp > 0 &&
-             config?.stockQty > 0 &&
-             config.mrp >= config.sellingPrice; // MRP should be >= selling price
+      return (
+        config?.sellingPrice > 0 &&
+        config?.mrp > 0 &&
+        config?.stockQty > 0 &&
+        config.mrp >= config.sellingPrice
+      ); // MRP should be >= selling price
     });
   };
 
@@ -168,7 +208,8 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
     if (!isFormValid()) {
       toast({
         title: "Invalid configuration",
-        description: "Please ensure all fields are filled and MRP is greater than or equal to selling price.",
+        description:
+          "Please ensure all fields are filled and MRP is greater than or equal to selling price.",
         variant: "destructive",
       });
       return;
@@ -178,14 +219,14 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
       setIsSubmitting(true);
 
       // Prepare data for bulk add API
-      const productsToAdd = Array.from(selectedProducts).map(productId => {
+      const productsToAdd = Array.from(selectedProducts).map((productId) => {
         const config = productPricing[productId];
         return {
           productId: productId,
           price: config.sellingPrice,
           mrp: config.mrp,
           stockQty: config.stockQty,
-          deliverySupported: config.deliverySupported
+          deliverySupported: config.deliverySupported,
         };
       });
 
@@ -194,17 +235,19 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
 
       if (response.success) {
         // Convert the response to VendorProduct format for the dashboard
-        const vendorProducts: VendorProduct[] = response.results.success.map((vp: any) => ({
-          id: vp.id,
-          vendorId: vp.vendorId,
-          productId: vp.productId,
-          price: vp.price,
-          mrp: vp.mrp,
-          stockQty: vp.stockQty,
-          isActive: vp.isActive,
-          deliverySupported: vp.deliverySupported,
-          product: products.find(p => p.id === vp.productId)!
-        }));
+        const vendorProducts: VendorProduct[] = response.results.success.map(
+          (vp: any) => ({
+            id: vp.id,
+            vendorId: vp.vendorId,
+            productId: vp.productId,
+            price: vp.price,
+            mrp: vp.mrp,
+            stockQty: vp.stockQty,
+            isActive: vp.isActive,
+            deliverySupported: vp.deliverySupported,
+            product: products.find((p) => p.id === vp.productId)!,
+          })
+        );
 
         onProductsSelected(vendorProducts);
 
@@ -218,7 +261,10 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
     } catch (error) {
       toast({
         title: "Failed to add products",
-        description: error instanceof Error ? error.message : "Failed to add products. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to add products. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -239,7 +285,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   // Select all visible products
   const handleSelectAllVisible = () => {
     const newSelected = new Set(selectedProducts);
-    paginatedProducts.forEach(product => {
+    paginatedProducts.forEach((product) => {
       if (!existingProductIds.has(product.id)) {
         newSelected.add(product.id);
       }
@@ -250,7 +296,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   // Deselect all visible products
   const handleDeselectAllVisible = () => {
     const newSelected = new Set(selectedProducts);
-    paginatedProducts.forEach(product => {
+    paginatedProducts.forEach((product) => {
       newSelected.delete(product.id);
     });
     setSelectedProducts(newSelected);
@@ -264,27 +310,38 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   };
 
   // Update product pricing
-  const updateProductPricing = (productId: string, field: string, value: number | boolean) => {
-    setProductPricing(prev => ({
+  const updateProductPricing = (
+    productId: string,
+    field: string,
+    value: number | boolean
+  ) => {
+    setProductPricing((prev) => ({
       ...prev,
       [productId]: {
         ...prev[productId],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
   // Format number input value
-  const handleNumberInputChange = (productId: string, field: string, value: string) => {
+  const handleNumberInputChange = (
+    productId: string,
+    field: string,
+    value: string
+  ) => {
     // Allow empty string, single decimal point, or valid number input
-    if (value === '' || value === '.' || value === '0.') {
+    if (value === "" || value === "." || value === "0.") {
       // For empty or just decimal point, store as is temporarily
-      setProductPricing(prev => ({
+      setProductPricing((prev) => ({
         ...prev,
         [productId]: {
           ...prev[productId],
-          [field]: value === '' || value === '.' || value === '0.' ? 0 : prev[productId][field]
-        }
+          [field]:
+            value === "" || value === "." || value === "0."
+              ? 0
+              : prev[productId][field],
+        },
       }));
       return;
     }
@@ -297,21 +354,24 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
 
     // Remove leading zeros but keep decimal values
     let formattedValue = value;
-    if (value.length > 1 && value.startsWith('0') && !value.startsWith('0.')) {
-      formattedValue = value.replace(/^0+/, '');
+    if (value.length > 1 && value.startsWith("0") && !value.startsWith("0.")) {
+      formattedValue = value.replace(/^0+/, "");
     }
-    
+
     // Parse as float for price fields, as integer for stock
-    const numValue = field === 'stockQty' ? parseInt(formattedValue) || 0 : parseFloat(formattedValue) || 0;
-    
+    const numValue =
+      field === "stockQty"
+        ? parseInt(formattedValue) || 0
+        : parseFloat(formattedValue) || 0;
+
     // Store both the display value and the numeric value
-    setProductPricing(prev => ({
+    setProductPricing((prev) => ({
       ...prev,
       [productId]: {
         ...prev[productId],
         [`${field}_display`]: value, // Store display value
-        [field]: numValue // Store numeric value
-      }
+        [field]: numValue, // Store numeric value
+      },
     }));
   };
 
@@ -334,11 +394,11 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
           <div className="text-red-500 mb-4">
             <Package className="h-12 w-12 mx-auto" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">Failed to load products</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            Failed to load products
+          </h3>
           <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>
-            Try Again
-          </Button>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
       </div>
     );
@@ -351,38 +411,40 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
         <div className="flex items-center justify-between w-full gap-4">
           {/* Back Button */}
           {isAddingToExisting && onCancel && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={onCancel} 
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCancel}
               className="text-white hover:bg-white/20 p-2 rounded-full"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
           )}
-          
+
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full overflow-hidden">
-              <img 
-                src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png" 
-                alt="DropSi Logo" 
+              <img
+                src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png"
+                alt="DropSi Logo"
                 className="w-full h-full object-cover"
               />
             </div>
             <div>
               <h1 className="text-2xl font-semibold">Partner Dashboard</h1>
               <p className="text-blue-100 text-sm">
-                {isAddingToExisting 
-                  ? "Select additional products to add to your inventory" 
-                  : "Select products from our standardized catalog to start selling"
-                }
+                {isAddingToExisting
+                  ? "Select additional products to add to your inventory"
+                  : "Select products from our standardized catalog to start selling"}
               </p>
             </div>
           </div>
-          
+
           {vendor && (
             <div className="flex items-center gap-3 ml-auto">
-              <Badge variant="secondary" className="text-sm bg-white/20 text-white font-bold uppercase">
+              <Badge
+                variant="secondary"
+                className="text-sm bg-white/20 text-white font-bold uppercase"
+              >
                 {vendor.displayName}
               </Badge>
               <DropdownMenu>
@@ -396,13 +458,20 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
-                    <a href="#" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                    <a href="#" target="_blank" rel="noopener noreferrer">
+                      Privacy Policy
+                    </a>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <a href="#" target="_blank" rel="noopener noreferrer">Legal</a>
+                    <a href="#" target="_blank" rel="noopener noreferrer">
+                      Legal
+                    </a>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700">
+                  <DropdownMenuItem
+                    onClick={handleLogout}
+                    className="text-red-600 focus:text-red-700"
+                  >
                     <LogOut className="h-4 w-4 mr-2" /> Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -431,15 +500,19 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                 <span className="text-sm font-medium">Filters:</span>
               </div>
             </div>
-            
+
             {/* Category Filter */}
             <div className="mb-4">
-              <p className="text-sm font-medium text-muted-foreground mb-2">Categories:</p>
+              <p className="text-sm font-medium text-muted-foreground mb-2">
+                Categories:
+              </p>
               <div className="flex flex-wrap gap-2">
-                {categories.map(category => (
+                {categories.map((category) => (
                   <Button
                     key={category}
-                    variant={selectedCategory === category ? "default" : "outline"}
+                    variant={
+                      selectedCategory === category ? "default" : "outline"
+                    }
                     size="sm"
                     onClick={() => setSelectedCategory(category)}
                   >
@@ -451,9 +524,11 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
 
             {/* Brand Filter */}
             <div>
-              <p className="text-sm font-medium text-muted-foreground mb-2">Brands:</p>
+              <p className="text-sm font-medium text-muted-foreground mb-2">
+                Brands:
+              </p>
               <div className="flex flex-wrap gap-2">
-                {brands.map(brand => (
+                {brands.map((brand) => (
                   <Button
                     key={brand}
                     variant={selectedBrand === brand ? "default" : "outline"}
@@ -473,7 +548,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
           <Card className="mb-6 shadow-card">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Selected Products ({selectedProducts.size})</h3>
+                <h3 className="font-semibold">
+                  Selected Products ({selectedProducts.size})
+                </h3>
                 <Button variant="outline" size="sm" onClick={handleClearAll}>
                   <X className="h-4 w-4 mr-1" />
                   Clear All
@@ -481,10 +558,15 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
               </div>
               <div className="flex flex-wrap gap-2">
                 {products
-                  .filter(product => selectedProducts.has(product.id))
-                  .map(product => (
-                    <div key={product.id} className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full">
-                      <span className="text-sm">{toTitleCase(product.name)}</span>
+                  .filter((product) => selectedProducts.has(product.id))
+                  .map((product) => (
+                    <div
+                      key={product.id}
+                      className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full"
+                    >
+                      <span className="text-sm">
+                        {toTitleCase(product.name)}
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -504,8 +586,12 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
         <Card className="shadow-card overflow-hidden">
           <div className="flex justify-between items-center p-4 border-b">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold">Products ({filteredProducts.length})</h3>
-              <Badge variant="secondary">{selectedProducts.size} selected</Badge>
+              <h3 className="font-semibold">
+                Products ({filteredProducts.length})
+              </h3>
+              <Badge variant="secondary">
+                {selectedProducts.size} selected
+              </Badge>
             </div>
             <div className="flex items-center gap-2">
               <DropdownMenu>
@@ -528,7 +614,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
               </DropdownMenu>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto">
             <Table className="w-full">
               <TableHeader>
@@ -549,25 +635,36 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedProducts.map(product => {
+                  paginatedProducts.map((product) => {
                     const isSelected = selectedProducts.has(product.id);
                     const isAlreadyAdded = existingProductIds.has(product.id);
                     const pricing = productPricing[product.id];
-                    
+
                     return (
                       <>
-                        <TableRow 
+                        <TableRow
                           key={product.id}
-                          className={`${isSelected ? 'bg-primary/5' : ''} ${isAlreadyAdded ? 'opacity-60' : 'cursor-pointer hover:bg-muted/50'}`}
-                          onClick={() => !isAlreadyAdded && handleRowClick(product)}
+                          className={`${isSelected ? "bg-primary/5" : ""} ${
+                            isAlreadyAdded
+                              ? "opacity-60"
+                              : "cursor-pointer hover:bg-muted/50"
+                          }`}
+                          onClick={() =>
+                            !isAlreadyAdded && handleRowClick(product)
+                          }
                         >
-                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          <TableCell
+                            className="text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {isAlreadyAdded ? (
                               <CheckCircle className="h-4 w-4 text-success mx-auto" />
                             ) : (
                               <Checkbox
                                 checked={isSelected}
-                                onCheckedChange={() => handleProductToggle(product.id)}
+                                onCheckedChange={() =>
+                                  handleProductToggle(product.id)
+                                }
                                 className="mx-auto"
                               />
                             )}
@@ -578,12 +675,13 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                                 <TooltipTrigger asChild>
                                   <div className="w-10 h-10 rounded-md overflow-hidden bg-muted flex items-center justify-center">
                                     {product.imageUrl ? (
-                                      <img 
-                                        src={product.imageUrl} 
-                                        alt={product.name} 
+                                      <img
+                                        src={product.imageUrl}
+                                        alt={product.name}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
-                                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                          (e.target as HTMLImageElement).src =
+                                            "/placeholder.svg";
                                         }}
                                       />
                                     ) : (
@@ -594,32 +692,44 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                                 <TooltipContent side="right" className="w-48">
                                   <div className="w-full aspect-square bg-muted rounded-md overflow-hidden flex items-center justify-center">
                                     {product.imageUrl ? (
-                                      <img 
-                                        src={product.imageUrl} 
-                                        alt={product.name} 
+                                      <img
+                                        src={product.imageUrl}
+                                        alt={product.name}
                                         className="w-full h-full object-contain"
                                         onError={(e) => {
-                                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                          (e.target as HTMLImageElement).src =
+                                            "/placeholder.svg";
                                         }}
                                       />
                                     ) : (
                                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                                         <ImageIcon className="h-8 w-8 mb-2" />
-                                        <span className="text-xs">No image</span>
+                                        <span className="text-xs">
+                                          No image
+                                        </span>
                                       </div>
                                     )}
                                   </div>
-                                  <p className="mt-2 text-sm font-medium">{toTitleCase(product.name)}</p>
+                                  <p className="mt-2 text-sm font-medium">
+                                    {toTitleCase(product.name)}
+                                  </p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </TableCell>
-                          <TableCell className="font-medium">{toTitleCase(product.name)}</TableCell>
+                          <TableCell className="font-medium">
+                            {toTitleCase(product.name)}
+                          </TableCell>
                           <TableCell>{product.brandName}</TableCell>
                           <TableCell>{product.uom}</TableCell>
                           <TableCell className="text-center">
                             {isAlreadyAdded ? (
-                              <Badge variant="outline" className="text-success border-success">Added</Badge>
+                              <Badge
+                                variant="outline"
+                                className="text-success border-success"
+                              >
+                                Added
+                              </Badge>
                             ) : isSelected ? (
                               <Badge variant="secondary">Selected</Badge>
                             ) : (
@@ -627,59 +737,115 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                             )}
                           </TableCell>
                         </TableRow>
-                        
+
                         {/* Pricing row for selected products */}
                         {isSelected && !isAlreadyAdded && (
-                          <TableRow className="bg-muted/30 border-t border-dashed" key={`${product.id}-pricing`}>
+                          <TableRow
+                            className="bg-muted/30 border-t border-dashed"
+                            key={`${product.id}-pricing`}
+                          >
                             <TableCell colSpan={6} className="py-2 px-4">
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">MRP (₹)</div>
-                                  <Input 
+                                  <div className="text-xs text-muted-foreground">
+                                    MRP (₹)
+                                  </div>
+                                  <Input
                                     type="text"
                                     inputMode="decimal"
-                                    value={pricing?.mrp_display || pricing?.mrp?.toString() || '0'}
-                                    onChange={(e) => handleNumberInputChange(product.id, 'mrp', e.target.value)}
+                                    value={
+                                      pricing?.mrp_display ||
+                                      pricing?.mrp?.toString() ||
+                                      "0"
+                                    }
+                                    onChange={(e) =>
+                                      handleNumberInputChange(
+                                        product.id,
+                                        "mrp",
+                                        e.target.value
+                                      )
+                                    }
                                     className="h-8"
                                     onClick={(e) => e.stopPropagation()}
                                     placeholder="0.00"
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">Selling Price (₹)</div>
-                                  <Input 
+                                  <div className="text-xs text-muted-foreground">
+                                    Selling Price (₹)
+                                  </div>
+                                  <Input
                                     type="text"
                                     inputMode="decimal"
-                                    value={pricing?.sellingPrice_display || pricing?.sellingPrice?.toString() || '0'}
-                                    onChange={(e) => handleNumberInputChange(product.id, 'sellingPrice', e.target.value)}
+                                    value={
+                                      pricing?.sellingPrice_display ||
+                                      pricing?.sellingPrice?.toString() ||
+                                      "0"
+                                    }
+                                    onChange={(e) =>
+                                      handleNumberInputChange(
+                                        product.id,
+                                        "sellingPrice",
+                                        e.target.value
+                                      )
+                                    }
                                     className="h-8"
                                     onClick={(e) => e.stopPropagation()}
                                     placeholder="0.00"
                                   />
                                   {pricing?.sellingPrice > pricing?.mrp && (
-                                    <p className="text-xs text-destructive mt-1">Price cannot exceed MRP</p>
+                                    <p className="text-xs text-destructive mt-1">
+                                      Price cannot exceed MRP
+                                    </p>
                                   )}
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">Stock Quantity</div>
-                                  <Input 
+                                  <div className="text-xs text-muted-foreground">
+                                    Stock Quantity
+                                  </div>
+                                  <Input
                                     type="text"
                                     inputMode="numeric"
-                                    value={pricing?.stockQty_display || pricing?.stockQty?.toString() || '0'}
-                                    onChange={(e) => handleNumberInputChange(product.id, 'stockQty', e.target.value.replace(/\./g, ''))}
+                                    value={
+                                      pricing?.stockQty_display ||
+                                      pricing?.stockQty?.toString() ||
+                                      "0"
+                                    }
+                                    onChange={(e) =>
+                                      handleNumberInputChange(
+                                        product.id,
+                                        "stockQty",
+                                        e.target.value.replace(/\./g, "")
+                                      )
+                                    }
                                     className="h-8"
                                     onClick={(e) => e.stopPropagation()}
                                     placeholder="0"
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">Delivery Service</div>
-                                  <div className="flex items-center space-x-2 h-8" onClick={(e) => e.stopPropagation()}>
+                                  <div className="text-xs text-muted-foreground">
+                                    Delivery Service
+                                  </div>
+                                  <div
+                                    className="flex items-center space-x-2 h-8"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
                                     <Switch
-                                      checked={pricing?.deliverySupported ?? true}
-                                      onCheckedChange={(checked) => updateProductPricing(product.id, 'deliverySupported', checked)}
+                                      checked={
+                                        pricing?.deliverySupported ?? true
+                                      }
+                                      onCheckedChange={(checked) =>
+                                        updateProductPricing(
+                                          product.id,
+                                          "deliverySupported",
+                                          checked
+                                        )
+                                      }
                                     />
-                                    <span className="text-sm">DropSi handles delivery</span>
+                                    <span className="text-sm">
+                                      DropSi handles delivery
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -693,12 +859,14 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
               </TableBody>
             </Table>
           </div>
-          
+
           {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <div className="text-sm text-muted-foreground">
-                Showing {(page - 1) * itemsPerPage + 1} to {Math.min(page * itemsPerPage, filteredProducts.length)} of {filteredProducts.length} products
+                Showing {(page - 1) * itemsPerPage + 1} to{" "}
+                {Math.min(page * itemsPerPage, filteredProducts.length)} of{" "}
+                {filteredProducts.length} products
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -732,7 +900,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
             size="lg"
             onClick={handleContinue}
             className="px-8 shadow-xl"
-            disabled={selectedProducts.size === 0 || !isFormValid() || isSubmitting}
+            disabled={
+              selectedProducts.size === 0 || !isFormValid() || isSubmitting
+            }
           >
             {isSubmitting ? (
               <>
@@ -741,7 +911,8 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
               </>
             ) : (
               <>
-                Add {selectedProducts.size} Product{selectedProducts.size !== 1 ? 's' : ''}
+                Add {selectedProducts.size} Product
+                {selectedProducts.size !== 1 ? "s" : ""}
                 <Truck className="ml-2 h-5 w-5" />
               </>
             )}
