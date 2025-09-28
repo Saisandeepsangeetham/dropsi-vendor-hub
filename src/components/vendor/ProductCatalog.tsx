@@ -4,27 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Search,
-  Filter,
-  Package,
-  Truck,
-  X,
-  Trash2,
-  ArrowLeft,
-  CheckCircle,
-  Loader2,
-  ChevronDown,
-  Image as ImageIcon,
-  DollarSign,
-  ShoppingCart,
-  LogOut,
-} from "lucide-react";
+import { Search, Filter, Package, Truck, X, Trash2, ArrowLeft, CheckCircle, Loader2, ChevronDown, Image as ImageIcon, DollarSign, ShoppingCart, LogOut, Check } from "lucide-react";
 import { Product, VendorProduct, ProductManager } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import Loading from "@/components/ui/loading";
 import { toTitleCase } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "@/contexts/TranslationContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useTranslation } from "react-i18next";
 import {
@@ -34,6 +20,26 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Table,
   TableBody,
@@ -55,6 +61,7 @@ interface ProductCatalogProps {
   existingVendorProducts?: VendorProduct[];
   isAddingToExisting?: boolean;
   onCancel?: () => void;
+  showHeader?: boolean;
 }
 
 interface ProductPricing {
@@ -69,15 +76,10 @@ interface ProductPricing {
   };
 }
 
-const ProductCatalog = ({
-  onProductsSelected,
-  existingVendorProducts = [],
-  isAddingToExisting = false,
-  onCancel,
-}: ProductCatalogProps) => {
+const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAddingToExisting = false, onCancel, showHeader = true }: ProductCatalogProps) => {
   const { t } = useTranslation();
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedBrand, setSelectedBrand] = useState("All");
+  const [selectedBrand, setSelectedBrand] = useState("");
+  const [selectedProduct, setSelectedProduct] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
     new Set()
@@ -91,6 +93,8 @@ const ProductCatalog = ({
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { vendor, logout } = useAuth();
+  const [brandOpen, setBrandOpen] = useState(false);
+  const [productOpen, setProductOpen] = useState(false);
 
   // Get existing product IDs to show them as already added
   const existingProductIds = new Set(
@@ -127,42 +131,43 @@ const ProductCatalog = ({
   useEffect(() => {
     const newPricing: ProductPricing = {};
 
-    selectedProducts.forEach((productId) => {
+    selectedProducts.forEach(productId => {
       if (!productPricing[productId]) {
         newPricing[productId] = {
           mrp: 0,
           sellingPrice: 0,
           stockQty: 0,
           deliverySupported: true,
+          mrp_display: '',
+          sellingPrice_display: '',
+          stockQty_display: ''
         };
       }
     });
 
     if (Object.keys(newPricing).length > 0) {
-      setProductPricing((prev) => ({ ...prev, ...newPricing }));
+      setProductPricing(prev => ({ ...prev, ...newPricing }));
     }
   }, [selectedProducts]);
 
-  // Get unique categories and brands from products
-  const categories = [
-    "All",
-    ...Array.from(new Set(products.map((p) => p.brandName))),
-  ];
-  const brands = [
-    "All",
-    ...Array.from(new Set(products.map((p) => p.brandName))),
-  ];
+  // Get unique brands from products
+  const brands = Array.from(new Set(products.map(p => p.brandName))).sort();
 
-  const filteredProducts = products.filter((product) => {
-    const matchesCategory =
-      selectedCategory === "All" || product.brandName === selectedCategory;
-    const matchesBrand =
-      selectedBrand === "All" || product.brandName === selectedBrand;
-    const matchesSearch =
+  // Get products filtered by brand
+  const brandFilteredProducts = selectedBrand ?
+    products.filter(p => p.brandName === selectedBrand && p.isActive) :
+    products.filter(p => p.isActive);
+
+  // Get filtered products based on all criteria
+  const filteredProducts = brandFilteredProducts.filter(product => {
+    const matchesSearch = searchTerm === "" ||
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.brandName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesCategory && matchesBrand && matchesSearch && product.isActive;
+
+    const matchesProduct = selectedProduct === "" || product.id === selectedProduct;
+
+    return matchesSearch && matchesProduct;
   });
 
   // Pagination
@@ -195,12 +200,10 @@ const ProductCatalog = ({
   const isFormValid = () => {
     return Array.from(selectedProducts).every((productId) => {
       const config = productPricing[productId];
-      return (
-        config?.sellingPrice > 0 &&
+      return config?.sellingPrice > 0 &&
         config?.mrp > 0 &&
         config?.stockQty > 0 &&
-        config.mrp >= config.sellingPrice
-      ); // MRP should be >= selling price
+        config.mrp >= config.sellingPrice; // MRP should be >= selling price
     });
   };
 
@@ -302,6 +305,29 @@ const ProductCatalog = ({
     setSelectedProducts(newSelected);
   };
 
+  // Handle brand selection
+  const handleBrandSelect = (brand: string) => {
+    setSelectedBrand(brand);
+    setSelectedProduct(""); // Reset product selection when brand changes
+    setPage(1); // Reset to first page
+    setBrandOpen(false);
+  };
+
+  // Handle product selection
+  const handleProductSelect = (productId: string) => {
+    setSelectedProduct(productId);
+    setPage(1); // Reset to first page
+    setProductOpen(false);
+  };
+
+  // Reset all filters
+  const handleResetFilters = () => {
+    setSelectedBrand("");
+    setSelectedProduct("");
+    setSearchTerm("");
+    setPage(1);
+  };
+
   // Handle row click
   const handleRowClick = (product: Product) => {
     if (!existingProductIds.has(product.id)) {
@@ -325,53 +351,77 @@ const ProductCatalog = ({
   };
 
   // Format number input value
-  const handleNumberInputChange = (
-    productId: string,
-    field: string,
-    value: string
-  ) => {
-    // Allow empty string, single decimal point, or valid number input
-    if (value === "" || value === "." || value === "0.") {
-      // For empty or just decimal point, store as is temporarily
-      setProductPricing((prev) => ({
+  const handleNumberInputChange = (productId: string, field: string, value: string) => {
+    // Allow empty string
+    if (value === '') {
+      setProductPricing(prev => ({
         ...prev,
         [productId]: {
           ...prev[productId],
-          [field]:
-            value === "" || value === "." || value === "0."
-              ? 0
-              : prev[productId][field],
-        },
+          [`${field}_display`]: '',
+          [field]: 0
+        }
       }));
       return;
     }
 
-    // Validate input is a proper number format
-    const numberRegex = /^[0-9]*\.?[0-9]*$/;
-    if (!numberRegex.test(value)) {
+    // For stock quantity, only allow integers
+    if (field === 'stockQty') {
+      const integerRegex = /^[0-9]+$/;
+      if (!integerRegex.test(value)) {
+        return; // Reject invalid input
+      }
+
+      // Remove leading zeros
+      const formattedValue = value.replace(/^0+/, '') || '0';
+      const numValue = parseInt(formattedValue) || 0;
+
+      setProductPricing(prev => ({
+        ...prev,
+        [productId]: {
+          ...prev[productId],
+          [`${field}_display`]: formattedValue,
+          [field]: numValue
+        }
+      }));
+      return;
+    }
+
+    // For price fields, allow decimal numbers
+    const decimalRegex = /^[0-9]*\.?[0-9]*$/;
+    if (!decimalRegex.test(value)) {
       return; // Reject invalid input
+    }
+
+    // Handle decimal point cases
+    if (value === '.' || value === '0.') {
+      setProductPricing(prev => ({
+        ...prev,
+        [productId]: {
+          ...prev[productId],
+          [`${field}_display`]: value,
+          [field]: 0
+        }
+      }));
+      return;
     }
 
     // Remove leading zeros but keep decimal values
     let formattedValue = value;
-    if (value.length > 1 && value.startsWith("0") && !value.startsWith("0.")) {
-      formattedValue = value.replace(/^0+/, "");
+    if (value.length > 1 && value.startsWith('0') && !value.startsWith('0.')) {
+      formattedValue = value.replace(/^0+/, '') || '0';
     }
 
-    // Parse as float for price fields, as integer for stock
-    const numValue =
-      field === "stockQty"
-        ? parseInt(formattedValue) || 0
-        : parseFloat(formattedValue) || 0;
+    const numValue = parseFloat(formattedValue) || 0;
 
     // Store both the display value and the numeric value
     setProductPricing((prev) => ({
       ...prev,
       [productId]: {
         ...prev[productId],
-        [`${field}_display`]: value, // Store display value
-        [field]: numValue, // Store numeric value
-      },
+        [`${field}_display`]: formattedValue,
+        [field]: numValue
+      }
     }));
   };
 
@@ -405,141 +455,234 @@ const ProductCatalog = ({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-card">
-      {/* Header */}
-      <div className="flex items-center justify-between p-6 bg-[#5CB8FF] text-white">
-        <div className="flex items-center justify-between w-full gap-4">
-          {/* Back Button */}
-          {isAddingToExisting && onCancel && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onCancel}
-              className="text-white hover:bg-white/20 p-2 rounded-full"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-          )}
-
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full overflow-hidden">
-              <img
-                src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png"
-                alt="DropSi Logo"
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold">Partner Dashboard</h1>
-              <p className="text-blue-100 text-sm">
-                {isAddingToExisting
-                  ? "Select additional products to add to your inventory"
-                  : "Select products from our standardized catalog to start selling"}
-              </p>
-            </div>
-          </div>
-
-          {vendor && (
-            <div className="flex items-center gap-3 ml-auto">
-              <Badge
-                variant="secondary"
-                className="text-sm bg-white/20 text-white font-bold uppercase"
+    <div className={showHeader ? "min-h-screen bg-gradient-card" : ""}>
+      {/* Header - only show if showHeader is true */}
+      {showHeader && (
+        <div className="flex items-center justify-between p-6 bg-[#5CB8FF] text-white">
+          <div className="flex items-center justify-between w-full gap-4">
+            {/* Back Button */}
+            {isAddingToExisting && onCancel && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onCancel}
+                className="text-white hover:bg-white/20 p-2 rounded-full"
               >
-                {vendor.displayName}
-              </Badge>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Avatar className="cursor-pointer">
-                    <AvatarImage src={undefined} alt={vendor.displayName} />
-                    <AvatarFallback className="bg-[#E3F4FF] text-[#1976D2] font-bold">
-                      {vendor.displayName?.[0] || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <a href="#" target="_blank" rel="noopener noreferrer">
-                      Privacy Policy
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <a href="#" target="_blank" rel="noopener noreferrer">
-                      Legal
-                    </a>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    className="text-red-600 focus:text-red-700"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" /> Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          )}
-        </div>
-      </div>
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            )}
 
-      <div className="max-w-7xl mx-auto p-6 pb-24">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full overflow-hidden">
+                <img
+                  src="/lovable-uploads/60937367-1e73-4f00-acf4-a275a8cff443.png"
+                  alt="DropSi Logo"
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold">Product Catalog</h1>
+                <p className="text-blue-100 text-sm">
+                  {isAddingToExisting
+                    ? "Select additional products to add to your inventory"
+                    : "Add products to your inventory"
+                  }
+                </p>
+              </div>
+            </div>
+
+            {vendor && (
+              <div className="flex items-center gap-3 ml-auto">
+                <Badge variant="secondary" className="text-sm bg-white/20 text-white font-bold uppercase">
+                  {vendor.displayName}
+                </Badge>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Avatar className="cursor-pointer">
+                      <AvatarImage src={undefined} alt={vendor.displayName} />
+                      <AvatarFallback className="bg-[#E3F4FF] text-[#1976D2] font-bold">
+                        {vendor.displayName?.[0] || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700">
+                      <LogOut className="h-4 w-4 mr-2" /> Sign out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className={`max-w-7xl mx-auto p-6 ${showHeader ? 'pb-24' : ''}`}>
         {/* Search and Filter Section */}
         <Card className="mb-6 shadow-card">
           <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4 mb-4">
+            <div className="flex flex-col lg:flex-row gap-4">
+              {/* Global Search */}
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder="Search products by name, brand, or description..."
+                  placeholder={t('catalog.searchProducts')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
                 />
               </div>
-              <div className="flex items-center gap-2">
-                <Filter className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Filters:</span>
+
+              {/* Brand Dropdown */}
+              <div className="min-w-[200px]">
+                <Popover open={brandOpen} onOpenChange={setBrandOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={brandOpen}
+                      className="w-full justify-between"
+                    >
+                      {selectedBrand
+                        ? brands.find((brand) => brand === selectedBrand)
+                        : t('catalog.selectBrand')}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[200px] p-0">
+                    <Command>
+                      <CommandInput placeholder="Search brands..." />
+                      <CommandList>
+                        <CommandEmpty>No brand found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value=""
+                            onSelect={() => handleBrandSelect("")}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${selectedBrand === "" ? "opacity-100" : "opacity-0"
+                                }`}
+                            />
+                            All brands
+                          </CommandItem>
+                          {brands.map((brand) => (
+                            <CommandItem
+                              key={brand}
+                              value={brand}
+                              onSelect={() => handleBrandSelect(brand)}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${selectedBrand === brand ? "opacity-100" : "opacity-0"
+                                  }`}
+                              />
+                              {brand}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
+
+              {/* Product Dropdown */}
+              <div className="min-w-[250px]">
+                <Popover open={productOpen} onOpenChange={setProductOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={productOpen}
+                      className="w-full justify-between"
+                      disabled={!selectedBrand}
+                    >
+                      {selectedProduct
+                        ? toTitleCase(brandFilteredProducts.find((product) => product.id === selectedProduct)?.name || "")
+                        : selectedBrand ? t('catalog.selectProduct') : t('catalog.selectBrand')}
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0">
+                    <Command>
+                      <CommandInput placeholder={t('catalog.searchProducts')} />
+                      <CommandList>
+                        <CommandEmpty>No product found.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            value=""
+                            onSelect={() => handleProductSelect("")}
+                          >
+                            <Check
+                              className={`mr-2 h-4 w-4 ${selectedProduct === "" ? "opacity-100" : "opacity-0"
+                                }`}
+                            />
+                            All products
+                          </CommandItem>
+                          {brandFilteredProducts.map((product) => (
+                            <CommandItem
+                              key={product.id}
+                              value={product.name}
+                              onSelect={() => handleProductSelect(product.id)}
+                            >
+                              <Check
+                                className={`mr-2 h-4 w-4 ${selectedProduct === product.id ? "opacity-100" : "opacity-0"
+                                  }`}
+                              />
+                              {toTitleCase(product.name)}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* Reset Button */}
+              <Button
+                variant="outline"
+                onClick={handleResetFilters}
+                className="px-4"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
             </div>
 
-            {/* Category Filter */}
-            <div className="mb-4">
-              <p className="text-sm font-medium text-muted-foreground mb-2">
-                Categories:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {categories.map((category) => (
-                  <Button
-                    key={category}
-                    variant={
-                      selectedCategory === category ? "default" : "outline"
-                    }
-                    size="sm"
-                    onClick={() => setSelectedCategory(category)}
-                  >
-                    {category}
-                  </Button>
-                ))}
+            {/* Active Filters Display */}
+            {(selectedBrand || selectedProduct || searchTerm) && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <span className="text-sm font-medium text-muted-foreground">Active filters:</span>
+                {selectedBrand && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    Brand: {selectedBrand}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setSelectedBrand("")}
+                    />
+                  </Badge>
+                )}
+                {selectedProduct && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    Product: {toTitleCase(brandFilteredProducts.find(p => p.id === selectedProduct)?.name || "")}
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setSelectedProduct("")}
+                    />
+                  </Badge>
+                )}
+                {searchTerm && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    Search: "{searchTerm}"
+                    <X
+                      className="h-3 w-3 cursor-pointer"
+                      onClick={() => setSearchTerm("")}
+                    />
+                  </Badge>
+                )}
               </div>
-            </div>
-
-            {/* Brand Filter */}
-            <div>
-              <p className="text-sm font-medium text-muted-foreground mb-2">
-                Brands:
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {brands.map((brand) => (
-                  <Button
-                    key={brand}
-                    variant={selectedBrand === brand ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedBrand(brand)}
-                  >
-                    {brand}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -747,51 +890,27 @@ const ProductCatalog = ({
                             <TableCell colSpan={6} className="py-2 px-4">
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">
-                                    MRP (₹)
-                                  </div>
+                                  <div className="text-xs text-muted-foreground">{t('catalog.mrp')} (₹)</div>
                                   <Input
                                     type="text"
                                     inputMode="decimal"
-                                    value={
-                                      pricing?.mrp_display ||
-                                      pricing?.mrp?.toString() ||
-                                      "0"
-                                    }
-                                    onChange={(e) =>
-                                      handleNumberInputChange(
-                                        product.id,
-                                        "mrp",
-                                        e.target.value
-                                      )
-                                    }
+                                    value={pricing?.mrp_display || ''}
+                                    onChange={(e) => handleNumberInputChange(product.id, 'mrp', e.target.value)}
                                     className="h-8"
                                     onClick={(e) => e.stopPropagation()}
-                                    placeholder="0.00"
+                                    placeholder="Enter MRP"
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">
-                                    Selling Price (₹)
-                                  </div>
+                                  <div className="text-xs text-muted-foreground">{t('catalog.sellingPrice')} (₹)</div>
                                   <Input
                                     type="text"
                                     inputMode="decimal"
-                                    value={
-                                      pricing?.sellingPrice_display ||
-                                      pricing?.sellingPrice?.toString() ||
-                                      "0"
-                                    }
-                                    onChange={(e) =>
-                                      handleNumberInputChange(
-                                        product.id,
-                                        "sellingPrice",
-                                        e.target.value
-                                      )
-                                    }
+                                    value={pricing?.sellingPrice_display || ''}
+                                    onChange={(e) => handleNumberInputChange(product.id, 'sellingPrice', e.target.value)}
                                     className="h-8"
                                     onClick={(e) => e.stopPropagation()}
-                                    placeholder="0.00"
+                                    placeholder="Enter selling price"
                                   />
                                   {pricing?.sellingPrice > pricing?.mrp && (
                                     <p className="text-xs text-destructive mt-1">
@@ -800,27 +919,15 @@ const ProductCatalog = ({
                                   )}
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">
-                                    Stock Quantity
-                                  </div>
+                                  <div className="text-xs text-muted-foreground">{t('catalog.stockQuantity')}</div>
                                   <Input
                                     type="text"
                                     inputMode="numeric"
-                                    value={
-                                      pricing?.stockQty_display ||
-                                      pricing?.stockQty?.toString() ||
-                                      "0"
-                                    }
-                                    onChange={(e) =>
-                                      handleNumberInputChange(
-                                        product.id,
-                                        "stockQty",
-                                        e.target.value.replace(/\./g, "")
-                                      )
-                                    }
+                                    value={pricing?.stockQty_display || ''}
+                                    onChange={(e) => handleNumberInputChange(product.id, 'stockQty', e.target.value)}
                                     className="h-8"
                                     onClick={(e) => e.stopPropagation()}
-                                    placeholder="0"
+                                    placeholder="Enter quantity"
                                   />
                                 </div>
                                 <div className="space-y-1">
@@ -911,8 +1018,7 @@ const ProductCatalog = ({
               </>
             ) : (
               <>
-                Add {selectedProducts.size} Product
-                {selectedProducts.size !== 1 ? "s" : ""}
+                {t('catalog.addProducts')} ({selectedProducts.size})
                 <Truck className="ml-2 h-5 w-5" />
               </>
             )}
@@ -923,7 +1029,7 @@ const ProductCatalog = ({
         {filteredProducts.length === 0 && !isLoading && (
           <div className="text-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">No products found</h3>
+            <h3 className="text-lg font-semibold mb-2">{t('catalog.noProductsFound')}</h3>
             <p className="text-muted-foreground">
               Try adjusting your search terms or filters
             </p>

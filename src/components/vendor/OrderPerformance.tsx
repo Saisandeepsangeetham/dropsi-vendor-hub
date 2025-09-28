@@ -2,30 +2,85 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  BarChart3,
-  TrendingUp,
-  Package,
-  IndianRupee,
-  ShoppingCart,
-  Clock,
-} from "lucide-react";
-import { useTranslation } from "react-i18next";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { BarChart3, TrendingUp, Package, IndianRupee, ShoppingCart, Clock } from "lucide-react";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { ChartConfig, ChartContainer } from "@/components/ui/chart";
 
 interface OrderPerformanceProps {
   vendorId: string;
 }
 
 const OrderPerformance = ({ vendorId }: OrderPerformanceProps) => {
-  const { t } = useTranslation();
-  const [timeRange, setTimeRange] = useState("7days");
+  const [timeRange, setTimeRange] = useState("today");
+  const [chartMetric, setChartMetric] = useState("orders");
+
+  // Generate mock chart data based on time range
+  const generateChartData = () => {
+    let days;
+    switch (timeRange) {
+      case "today":
+        days = 1;
+        break;
+      case "lastweek":
+        days = 7;
+        break;
+      case "last10days":
+        days = 10;
+        break;
+      case "30days":
+        days = 30;
+        break;
+      default:
+        days = 7;
+    }
+
+    const data = [];
+
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+
+      // Format date as "Sep 6" format
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const month = monthNames[date.getMonth()];
+      const day = date.getDate();
+      const dateLabel = `${month} ${day}`;
+
+      if (chartMetric === "orders") {
+        data.push({
+          day: dateLabel,
+          value: Math.floor(Math.random() * 20) + 5,
+          label: "Orders"
+        });
+      } else if (chartMetric === "revenue") {
+        data.push({
+          day: dateLabel,
+          value: Math.floor(Math.random() * 5000) + 1000,
+          label: "Revenue (₹)"
+        });
+      } else {
+        // Top products data (showing top 7 products)
+        const products = ["Bananas", "Milk", "Bread", "Rice", "Oil", "Sugar", "Tea"];
+        return products.map(product => ({
+          day: product,
+          value: Math.floor(Math.random() * 50) + 10,
+          label: "Units Sold"
+        }));
+      }
+    }
+    return data;
+  };
+
+  const chartData = generateChartData();
+
+  const chartConfig = {
+    value: {
+      label: chartMetric === "orders" ? "Orders" : chartMetric === "revenue" ? "Revenue" : "Units",
+      color: "#5CB8FF",
+    },
+  } satisfies ChartConfig;
 
   // Mock data - Replace with actual Supabase queries
   const performanceData = {
@@ -93,79 +148,151 @@ const OrderPerformance = ({ vendorId }: OrderPerformanceProps) => {
 
   return (
     <div className="space-y-6">
-      {/* Performance Overview */}
+      {/* Performance Chart */}
       <Card className="shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-primary/10 rounded-full">
-                <BarChart3 className="h-6 w-6 text-primary" />
+                <BarChart3 className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold">
-                  {t("order_performance.title")}
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  {t("order_performance.track_sales")}
-                </p>
+                <h3 className="text-lg font-semibold">Performance Analytics</h3>
+                <p className="text-sm text-muted-foreground">Track metrics over time</p>
               </div>
             </div>
-            <Select value={timeRange} onValueChange={setTimeRange}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7days">
-                  {t("order_performance.last_7_days")}
-                </SelectItem>
-                <SelectItem value="30days">
-                  {t("order_performance.last_30_days")}
-                </SelectItem>
-                <SelectItem value="90days">
-                  {t("order_performance.last_90_days")}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-          </CardTitle>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Select value={timeRange} onValueChange={setTimeRange}>
+                <SelectTrigger className="w-full sm:w-28">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Today</SelectItem>
+                  <SelectItem value="lastweek">Last Week</SelectItem>
+                  <SelectItem value="last10days">Last 10 Days</SelectItem>
+                  <SelectItem value="30days">30 Days</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={chartMetric} onValueChange={setChartMetric}>
+                <SelectTrigger className="w-full sm:w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="orders">Orders/Day</SelectItem>
+                  <SelectItem value="revenue">Revenue/Day</SelectItem>
+                  <SelectItem value="products">Top Products</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <ShoppingCart className="h-8 w-8 text-primary mx-auto mb-2" />
-              <p className="text-2xl font-bold">
-                {performanceData.totalOrders}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {t("order_performance.total_orders")}
-              </p>
+        <CardContent className="pt-0">
+          <ChartContainer config={chartConfig} className="h-[220px] w-full">
+            <BarChart
+              accessibilityLayer
+              data={chartData}
+              margin={{
+                left: 0,
+                right: 0,
+                top: 5,
+                bottom: timeRange === "30days" || chartMetric === "products" ? 50 : 5
+              }}
+              barCategoryGap={timeRange === "today" || timeRange === "lastweek" ? "10%" : "25%"}
+            >
+              <CartesianGrid vertical={false} strokeDasharray="3 3" opacity={0.3} />
+              <XAxis
+                dataKey="day"
+                tickLine={false}
+                tickMargin={8}
+                axisLine={false}
+                fontSize={timeRange === "30days" ? 9 : 11}
+                tickFormatter={(value) => chartMetric === "products" ? value : value}
+                angle={chartMetric === "products" ? -45 : (timeRange === "30days" ? -45 : 0)}
+                textAnchor={chartMetric === "products" ? "end" : (timeRange === "30days" ? "end" : "middle")}
+                height={chartMetric === "products" ? 50 : (timeRange === "30days" ? 50 : 30)}
+                interval={0}
+              />
+              <YAxis
+                tickLine={false}
+                axisLine={false}
+                fontSize={11}
+                width={chartMetric === "revenue" ? 50 : 35}
+                tickFormatter={(value) =>
+                  chartMetric === "revenue" ? `₹${(value / 1000).toFixed(0)}k` : value.toString()
+                }
+              />
+              <Tooltip
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    return (
+                      <div className="rounded-lg border bg-background p-2 shadow-md">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">
+                            {chartMetric === "products" ? label : `${label}`}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {payload[0].payload.label}: {" "}
+                            <span className="font-semibold text-foreground">
+                              {chartMetric === "revenue" ? `₹${payload[0].value?.toLocaleString()}` : payload[0].value}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
+              />
+              <Bar
+                dataKey="value"
+                fill="var(--color-value)"
+                radius={3}
+                maxBarSize={timeRange === "today" || timeRange === "lastweek" ? 60 : 40}
+              />
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
+
+      {/* Performance Overview */}
+      <Card className="shadow-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/10 rounded-full">
+              <TrendingUp className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold">Overview Summary</h3>
+              <p className="text-sm text-muted-foreground">Key metrics for selected period</p>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <ShoppingCart className="h-6 w-6 text-primary mx-auto mb-2" />
+              <p className="text-xl font-bold">{performanceData.totalOrders}</p>
+              <p className="text-xs text-muted-foreground">Total Orders</p>
               <div className="flex items-center justify-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3 text-success" />
                 <span className="text-xs text-success">+12%</span>
               </div>
             </div>
 
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <IndianRupee className="h-8 w-8 text-primary mx-auto mb-2" />
-              <p className="text-2xl font-bold">
-                ₹{performanceData.totalRevenue.toLocaleString()}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {t("order_performance.total_revenue")}
-              </p>
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <IndianRupee className="h-6 w-6 text-primary mx-auto mb-2" />
+              <p className="text-xl font-bold">₹{performanceData.totalRevenue.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">Total Revenue</p>
               <div className="flex items-center justify-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3 text-success" />
                 <span className="text-xs text-success">+8%</span>
               </div>
             </div>
 
-            <div className="text-center p-4 bg-muted/50 rounded-lg">
-              <Package className="h-8 w-8 text-primary mx-auto mb-2" />
-              <p className="text-2xl font-bold">
-                ₹{performanceData.avgOrderValue}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {t("order_performance.avg_order_value")}
-              </p>
+            <div className="text-center p-3 bg-muted/50 rounded-lg">
+              <Package className="h-6 w-6 text-primary mx-auto mb-2" />
+              <p className="text-xl font-bold">₹{performanceData.avgOrderValue}</p>
+              <p className="text-xs text-muted-foreground">Avg Order Value</p>
               <div className="flex items-center justify-center gap-1 mt-1">
                 <TrendingUp className="h-3 w-3 text-success" />
                 <span className="text-xs text-success">+5%</span>

@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
@@ -45,6 +44,7 @@ import {
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 // Mock data - replace with actual API calls
 const mockPackagingData = [
@@ -514,6 +514,7 @@ interface ProductDetailProps {
 }
 
 const ProductDetailSheet: React.FC<ProductDetailProps> = ({ product }) => {
+  const { t } = useTranslation();
   return (
     <Sheet>
       <SheetTrigger asChild>

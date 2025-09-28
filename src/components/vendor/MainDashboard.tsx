@@ -47,8 +47,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import Loading from "@/components/ui/loading";
 import { toTitleCase } from "@/lib/utils";
+import { useTranslation } from "@/contexts/TranslationContext";
 import ProductCatalog from "@/components/vendor/ProductCatalog";
-import { useTranslation } from "react-i18next";
 
 interface MainDashboardProps {
   onAddMoreProducts: () => void;
@@ -108,7 +108,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
 
   const handleProductsAdded = async (newVendorProducts: VendorProduct[]) => {
     // Update local state with the new products
-    setVendorProducts((prev) => [...prev, ...newVendorProducts]);
+    setVendorProducts(prev => [...prev, ...newVendorProducts]);
 
     // Close the modal
     setShowAddProductsModal(false);
@@ -137,11 +137,11 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
       await ProductManager.updateVendorProduct(editingProduct.id, editForm);
 
       // Update local state
-      setVendorProducts((prev) =>
-        prev.map((vp) =>
-          vp.id === editingProduct.id ? { ...vp, ...editForm } : vp
-        )
-      );
+      setVendorProducts(prev => prev.map(vp =>
+        vp.id === editingProduct.id
+          ? { ...vp, ...editForm }
+          : vp
+      ));
 
       setEditingProduct(null);
       setEditForm({});
@@ -170,9 +170,11 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
       await ProductManager.updateVendorProduct(vendorProductId, { isActive });
 
       // Update local state
-      setVendorProducts((prev) =>
-        prev.map((vp) => (vp.id === vendorProductId ? { ...vp, isActive } : vp))
-      );
+      setVendorProducts(prev => prev.map(vp =>
+        vp.id === vendorProductId
+          ? { ...vp, isActive }
+          : vp
+      ));
 
       toast({
         title: isActive ? "Product activated" : "Product deactivated",
@@ -320,9 +322,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">
-                  Total Products
-                </p>
+                <p className="text-sm font-medium text-muted-foreground">{t('dashboard.totalProducts')}</p>
                 <p className="text-2xl font-bold">{totalProducts}</p>
               </div>
               <Package className="h-8 w-8 text-primary" />
@@ -390,7 +390,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
               className="flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
-              Add More Products
+              {t('dashboard.addMoreProducts')}
             </Button>
           </CardTitle>
         </CardHeader>
@@ -425,10 +425,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                 const hasDiscount = !!productDiscounts[vendorProduct.id];
 
                 return (
-                  <div
-                    key={vendorProduct.id}
-                    className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
-                  >
+                  <div key={vendorProduct.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                       <div className="flex items-start gap-4 flex-1">
                         <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center flex-shrink-0">
@@ -438,112 +435,65 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                               alt={vendorProduct.product.name}
                               className="w-full h-full object-cover rounded-lg"
                               onError={(e) => {
-                                const target =
-                                  e.currentTarget as HTMLImageElement;
-                                target.style.display = "none";
-                                const nextSibling =
-                                  target.nextElementSibling as HTMLElement;
+                                const target = e.currentTarget as HTMLImageElement;
+                                target.style.display = 'none';
+                                const nextSibling = target.nextElementSibling as HTMLElement;
                                 if (nextSibling) {
-                                  nextSibling.style.display = "flex";
+                                  nextSibling.style.display = 'flex';
                                 }
                               }}
                             />
                           ) : (
                             <Package className="h-8 w-8 text-muted-foreground" />
                           )}
-                          <Package
-                            className="h-8 w-8 text-muted-foreground"
-                            style={{ display: "none" }}
-                          />
+                          <Package className="h-8 w-8 text-muted-foreground" style={{ display: 'none' }} />
                         </div>
 
                         <div className="flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-lg break-words">
-                              {toTitleCase(vendorProduct.product.name)}
-                            </h3>
-                            <Badge
-                              variant="secondary"
-                              className="flex-shrink-0"
-                            >
-                              {vendorProduct.product.brandName}
-                            </Badge>
+                            <h3 className="font-semibold text-lg break-words">{toTitleCase(vendorProduct.product.name)}</h3>
+                            <Badge variant="secondary" className="flex-shrink-0">{vendorProduct.product.brandName}</Badge>
                             {vendorProduct.isActive ? (
-                              <Badge
-                                variant="outline"
-                                className="text-success border-success flex-shrink-0"
-                              >
+                              <Badge variant="outline" className="text-success border-success flex-shrink-0">
                                 <CheckCircle className="h-3 w-3 mr-1" />
                                 Available
                               </Badge>
                             ) : (
-                              <Badge
-                                variant="outline"
-                                className="text-destructive border-destructive flex-shrink-0"
-                              >
+                              <Badge variant="outline" className="text-destructive border-destructive flex-shrink-0">
                                 <XCircle className="h-3 w-3 mr-1" />
                                 Out of Stock
                               </Badge>
                             )}
                             {hasDiscount && (
-                              <Badge
-                                variant="secondary"
-                                className="bg-primary text-primary-foreground flex-shrink-0"
-                              >
+                              <Badge variant="secondary" className="bg-primary text-primary-foreground flex-shrink-0">
                                 Active Discount
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground mb-2 break-words">
-                            {vendorProduct.product.description}
-                          </p>
+                          <p className="text-sm text-muted-foreground mb-2 break-words">{vendorProduct.product.description}</p>
 
                           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 text-sm">
                             <div className="flex flex-col">
-                              <span className="text-muted-foreground text-xs">
-                                MRP
-                              </span>
+                              <span className="text-muted-foreground text-xs">MRP</span>
+                              <span className="font-semibold">₹{vendorProduct.mrp}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">Price</span>
+                              <span className="font-semibold text-primary">₹{vendorProduct.price}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">Stock</span>
+                              <span className="font-semibold">{vendorProduct.stockQty} {vendorProduct.product.uom}</span>
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-muted-foreground text-xs">Delivery</span>
                               <span className="font-semibold">
-                                ₹{vendorProduct.mrp}
+                                {vendorProduct.deliverySupported ? "Self" : "DropSi"}
                               </span>
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-muted-foreground text-xs">
-                                Price
-                              </span>
-                              <span className="font-semibold text-primary">
-                                ₹{vendorProduct.price}
-                              </span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-muted-foreground text-xs">
-                                Stock
-                              </span>
-                              <span className="font-semibold">
-                                {vendorProduct.stockQty}{" "}
-                                {vendorProduct.product.uom}
-                              </span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-muted-foreground text-xs">
-                                Delivery
-                              </span>
-                              <span className="font-semibold">
-                                {vendorProduct.deliverySupported
-                                  ? "Self"
-                                  : "DropSi"}
-                              </span>
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="text-muted-foreground text-xs">
-                                Value
-                              </span>
-                              <span className="font-semibold">
-                                ₹
-                                {(
-                                  vendorProduct.price * vendorProduct.stockQty
-                                ).toLocaleString()}
-                              </span>
+                              <span className="text-muted-foreground text-xs">Value</span>
+                              <span className="font-semibold">₹{(vendorProduct.price * vendorProduct.stockQty).toLocaleString()}</span>
                             </div>
                           </div>
                         </div>
@@ -552,9 +502,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <Switch
                           checked={vendorProduct.isActive}
-                          onCheckedChange={(checked) =>
-                            toggleAvailability(vendorProduct.id, checked)
-                          }
+                          onCheckedChange={(checked) => toggleAvailability(vendorProduct.id, checked)}
                         />
                         <Button
                           variant="outline"
@@ -576,12 +524,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() =>
-                            handleRemoveProduct(
-                              vendorProduct.id,
-                              vendorProduct.product.name
-                            )
-                          }
+                          onClick={() => handleRemoveProduct(vendorProduct.id, vendorProduct.product.name)}
                           className="text-destructive hover:text-destructive"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -722,7 +665,7 @@ const MainDashboard = ({ onAddMoreProducts }: MainDashboardProps) => {
                 <div className="flex justify-between items-center">
                   <span className="font-medium">Discount Value</span>
                   <span>
-                    {selectedDiscount.discountType === "percentage"
+                    {selectedDiscount.discountType === 'percentage'
                       ? `${selectedDiscount.discountValue}%`
                       : `₹${selectedDiscount.discountValue}`}
                   </span>
