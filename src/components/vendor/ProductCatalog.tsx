@@ -12,6 +12,7 @@ import { toTitleCase } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useTranslation } from "react-i18next";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -72,7 +73,7 @@ interface ProductPricing {
     mrp_display?: string;
     sellingPrice_display?: string;
     stockQty_display?: string;
-  }
+  };
 }
 
 const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAddingToExisting = false, onCancel, showHeader = true }: ProductCatalogProps) => {
@@ -80,7 +81,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedProduct, setSelectedProduct] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
+    new Set()
+  );
   const [products, setProducts] = useState<Product[]>([]);
   const [productPricing, setProductPricing] = useState<ProductPricing>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -94,7 +97,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   const [productOpen, setProductOpen] = useState(false);
 
   // Get existing product IDs to show them as already added
-  const existingProductIds = new Set(existingVendorProducts.map(vp => vp.productId));
+  const existingProductIds = new Set(
+    existingVendorProducts.map((vp) => vp.productId)
+  );
 
   // Load products from API
   useEffect(() => {
@@ -105,10 +110,13 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
         const allProducts = await ProductManager.getAllProducts();
         setProducts(allProducts);
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to load products');
+        setError(
+          error instanceof Error ? error.message : "Failed to load products"
+        );
         toast({
           title: "Error loading products",
-          description: error instanceof Error ? error.message : "Please try again later.",
+          description:
+            error instanceof Error ? error.message : "Please try again later.",
           variant: "destructive",
         });
       } finally {
@@ -190,7 +198,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
 
   // Check if form is valid
   const isFormValid = () => {
-    return Array.from(selectedProducts).every(productId => {
+    return Array.from(selectedProducts).every((productId) => {
       const config = productPricing[productId];
       return config?.sellingPrice > 0 &&
         config?.mrp > 0 &&
@@ -203,7 +211,8 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
     if (!isFormValid()) {
       toast({
         title: "Invalid configuration",
-        description: "Please ensure all fields are filled and MRP is greater than or equal to selling price.",
+        description:
+          "Please ensure all fields are filled and MRP is greater than or equal to selling price.",
         variant: "destructive",
       });
       return;
@@ -213,14 +222,14 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
       setIsSubmitting(true);
 
       // Prepare data for bulk add API
-      const productsToAdd = Array.from(selectedProducts).map(productId => {
+      const productsToAdd = Array.from(selectedProducts).map((productId) => {
         const config = productPricing[productId];
         return {
           productId: productId,
           price: config.sellingPrice,
           mrp: config.mrp,
           stockQty: config.stockQty,
-          deliverySupported: config.deliverySupported
+          deliverySupported: config.deliverySupported,
         };
       });
 
@@ -229,17 +238,19 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
 
       if (response.success) {
         // Convert the response to VendorProduct format for the dashboard
-        const vendorProducts: VendorProduct[] = response.results.success.map((vp: any) => ({
-          id: vp.id,
-          vendorId: vp.vendorId,
-          productId: vp.productId,
-          price: vp.price,
-          mrp: vp.mrp,
-          stockQty: vp.stockQty,
-          isActive: vp.isActive,
-          deliverySupported: vp.deliverySupported,
-          product: products.find(p => p.id === vp.productId)!
-        }));
+        const vendorProducts: VendorProduct[] = response.results.success.map(
+          (vp: any) => ({
+            id: vp.id,
+            vendorId: vp.vendorId,
+            productId: vp.productId,
+            price: vp.price,
+            mrp: vp.mrp,
+            stockQty: vp.stockQty,
+            isActive: vp.isActive,
+            deliverySupported: vp.deliverySupported,
+            product: products.find((p) => p.id === vp.productId)!,
+          })
+        );
 
         onProductsSelected(vendorProducts);
 
@@ -253,7 +264,10 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
     } catch (error) {
       toast({
         title: "Failed to add products",
-        description: error instanceof Error ? error.message : "Failed to add products. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to add products. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -274,7 +288,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   // Select all visible products
   const handleSelectAllVisible = () => {
     const newSelected = new Set(selectedProducts);
-    paginatedProducts.forEach(product => {
+    paginatedProducts.forEach((product) => {
       if (!existingProductIds.has(product.id)) {
         newSelected.add(product.id);
       }
@@ -285,7 +299,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   // Deselect all visible products
   const handleDeselectAllVisible = () => {
     const newSelected = new Set(selectedProducts);
-    paginatedProducts.forEach(product => {
+    paginatedProducts.forEach((product) => {
       newSelected.delete(product.id);
     });
     setSelectedProducts(newSelected);
@@ -322,13 +336,17 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   };
 
   // Update product pricing
-  const updateProductPricing = (productId: string, field: string, value: number | boolean) => {
-    setProductPricing(prev => ({
+  const updateProductPricing = (
+    productId: string,
+    field: string,
+    value: number | boolean
+  ) => {
+    setProductPricing((prev) => ({
       ...prev,
       [productId]: {
         ...prev[productId],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
@@ -397,7 +415,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
     const numValue = parseFloat(formattedValue) || 0;
 
     // Store both the display value and the numeric value
-    setProductPricing(prev => ({
+    setProductPricing((prev) => ({
       ...prev,
       [productId]: {
         ...prev[productId],
@@ -426,11 +444,11 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
           <div className="text-red-500 mb-4">
             <Package className="h-12 w-12 mx-auto" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">Failed to load products</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            Failed to load products
+          </h3>
           <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>
-            Try Again
-          </Button>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
       </div>
     );
@@ -673,7 +691,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
           <Card className="mb-6 shadow-card">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Selected Products ({selectedProducts.size})</h3>
+                <h3 className="font-semibold">
+                  Selected Products ({selectedProducts.size})
+                </h3>
                 <Button variant="outline" size="sm" onClick={handleClearAll}>
                   <X className="h-4 w-4 mr-1" />
                   Clear All
@@ -681,10 +701,15 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
               </div>
               <div className="flex flex-wrap gap-2">
                 {products
-                  .filter(product => selectedProducts.has(product.id))
-                  .map(product => (
-                    <div key={product.id} className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full">
-                      <span className="text-sm">{toTitleCase(product.name)}</span>
+                  .filter((product) => selectedProducts.has(product.id))
+                  .map((product) => (
+                    <div
+                      key={product.id}
+                      className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full"
+                    >
+                      <span className="text-sm">
+                        {toTitleCase(product.name)}
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -704,8 +729,12 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
         <Card className="shadow-card overflow-hidden">
           <div className="flex justify-between items-center p-4 border-b">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold">Products ({filteredProducts.length})</h3>
-              <Badge variant="secondary">{selectedProducts.size} selected</Badge>
+              <h3 className="font-semibold">
+                Products ({filteredProducts.length})
+              </h3>
+              <Badge variant="secondary">
+                {selectedProducts.size} selected
+              </Badge>
             </div>
             <div className="flex items-center gap-2">
               <DropdownMenu>
@@ -749,7 +778,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedProducts.map(product => {
+                  paginatedProducts.map((product) => {
                     const isSelected = selectedProducts.has(product.id);
                     const isAlreadyAdded = existingProductIds.has(product.id);
                     const pricing = productPricing[product.id];
@@ -758,16 +787,27 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                       <>
                         <TableRow
                           key={product.id}
-                          className={`${isSelected ? 'bg-primary/5' : ''} ${isAlreadyAdded ? 'opacity-60' : 'cursor-pointer hover:bg-muted/50'}`}
-                          onClick={() => !isAlreadyAdded && handleRowClick(product)}
+                          className={`${isSelected ? "bg-primary/5" : ""} ${
+                            isAlreadyAdded
+                              ? "opacity-60"
+                              : "cursor-pointer hover:bg-muted/50"
+                          }`}
+                          onClick={() =>
+                            !isAlreadyAdded && handleRowClick(product)
+                          }
                         >
-                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          <TableCell
+                            className="text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {isAlreadyAdded ? (
                               <CheckCircle className="h-4 w-4 text-success mx-auto" />
                             ) : (
                               <Checkbox
                                 checked={isSelected}
-                                onCheckedChange={() => handleProductToggle(product.id)}
+                                onCheckedChange={() =>
+                                  handleProductToggle(product.id)
+                                }
                                 className="mx-auto"
                               />
                             )}
@@ -783,7 +823,8 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                                         alt={product.name}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
-                                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                          (e.target as HTMLImageElement).src =
+                                            "/placeholder.svg";
                                         }}
                                       />
                                     ) : (
@@ -799,27 +840,39 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                                         alt={product.name}
                                         className="w-full h-full object-contain"
                                         onError={(e) => {
-                                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                          (e.target as HTMLImageElement).src =
+                                            "/placeholder.svg";
                                         }}
                                       />
                                     ) : (
                                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                                         <ImageIcon className="h-8 w-8 mb-2" />
-                                        <span className="text-xs">No image</span>
+                                        <span className="text-xs">
+                                          No image
+                                        </span>
                                       </div>
                                     )}
                                   </div>
-                                  <p className="mt-2 text-sm font-medium">{toTitleCase(product.name)}</p>
+                                  <p className="mt-2 text-sm font-medium">
+                                    {toTitleCase(product.name)}
+                                  </p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </TableCell>
-                          <TableCell className="font-medium">{toTitleCase(product.name)}</TableCell>
+                          <TableCell className="font-medium">
+                            {toTitleCase(product.name)}
+                          </TableCell>
                           <TableCell>{product.brandName}</TableCell>
                           <TableCell>{product.uom}</TableCell>
                           <TableCell className="text-center">
                             {isAlreadyAdded ? (
-                              <Badge variant="outline" className="text-success border-success">Added</Badge>
+                              <Badge
+                                variant="outline"
+                                className="text-success border-success"
+                              >
+                                Added
+                              </Badge>
                             ) : isSelected ? (
                               <Badge variant="secondary">Selected</Badge>
                             ) : (
@@ -830,7 +883,10 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
 
                         {/* Pricing row for selected products */}
                         {isSelected && !isAlreadyAdded && (
-                          <TableRow className="bg-muted/30 border-t border-dashed" key={`${product.id}-pricing`}>
+                          <TableRow
+                            className="bg-muted/30 border-t border-dashed"
+                            key={`${product.id}-pricing`}
+                          >
                             <TableCell colSpan={6} className="py-2 px-4">
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="space-y-1">
@@ -857,7 +913,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                                     placeholder="Enter selling price"
                                   />
                                   {pricing?.sellingPrice > pricing?.mrp && (
-                                    <p className="text-xs text-destructive mt-1">Price cannot exceed MRP</p>
+                                    <p className="text-xs text-destructive mt-1">
+                                      Price cannot exceed MRP
+                                    </p>
                                   )}
                                 </div>
                                 <div className="space-y-1">
@@ -873,13 +931,28 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">Delivery Service</div>
-                                  <div className="flex items-center space-x-2 h-8" onClick={(e) => e.stopPropagation()}>
+                                  <div className="text-xs text-muted-foreground">
+                                    Delivery Service
+                                  </div>
+                                  <div
+                                    className="flex items-center space-x-2 h-8"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
                                     <Switch
-                                      checked={pricing?.deliverySupported ?? true}
-                                      onCheckedChange={(checked) => updateProductPricing(product.id, 'deliverySupported', checked)}
+                                      checked={
+                                        pricing?.deliverySupported ?? true
+                                      }
+                                      onCheckedChange={(checked) =>
+                                        updateProductPricing(
+                                          product.id,
+                                          "deliverySupported",
+                                          checked
+                                        )
+                                      }
                                     />
-                                    <span className="text-sm">DropSi handles delivery</span>
+                                    <span className="text-sm">
+                                      DropSi handles delivery
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -898,7 +971,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <div className="text-sm text-muted-foreground">
-                Showing {(page - 1) * itemsPerPage + 1} to {Math.min(page * itemsPerPage, filteredProducts.length)} of {filteredProducts.length} products
+                Showing {(page - 1) * itemsPerPage + 1} to{" "}
+                {Math.min(page * itemsPerPage, filteredProducts.length)} of{" "}
+                {filteredProducts.length} products
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -932,7 +1007,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
             size="lg"
             onClick={handleContinue}
             className="px-8 shadow-xl"
-            disabled={selectedProducts.size === 0 || !isFormValid() || isSubmitting}
+            disabled={
+              selectedProducts.size === 0 || !isFormValid() || isSubmitting
+            }
           >
             {isSubmitting ? (
               <>
