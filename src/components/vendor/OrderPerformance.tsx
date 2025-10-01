@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart3, TrendingUp, Package, IndianRupee, ShoppingCart, Clock } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 interface OrderPerformanceProps {
   vendorId: string;
@@ -14,6 +15,7 @@ interface OrderPerformanceProps {
 const OrderPerformance = ({ vendorId }: OrderPerformanceProps) => {
   const [timeRange, setTimeRange] = useState("today");
   const [chartMetric, setChartMetric] = useState("orders");
+  const { t }  = useTranslation();
 
   // Generate mock chart data based on time range
   const generateChartData = () => {

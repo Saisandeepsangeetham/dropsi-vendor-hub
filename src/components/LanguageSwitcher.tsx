@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Globe } from "lucide-react";
@@ -65,7 +64,13 @@ export const LanguageSwitcher = () => {
               }}
             >
               <div className="flex flex-col">
-                <span className="font-medium text-sm">
+                <span
+                  className="font-medium text-sm"
+                  style={{
+                    fontFamily:
+                      language.code === "ta" ? "Arial, sans-serif" : "inherit",
+                  }}
+                >
                   {language.nativeName}
                 </span>
                 <span
@@ -74,6 +79,8 @@ export const LanguageSwitcher = () => {
                     color: isSelected
                       ? "hsl(var(--primary-foreground) / 0.7)"
                       : "hsl(var(--muted-foreground))",
+                    fontFamily:
+                      language.code === "ta" ? "Arial, sans-serif" : "inherit",
                   }}
                 >
                   {language.name}

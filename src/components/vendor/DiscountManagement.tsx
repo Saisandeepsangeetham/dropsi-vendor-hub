@@ -33,10 +33,8 @@ import {
   VendorProduct,
   Discount,
   DiscountManager,
-  ProductManager,
 } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-import Loading from "@/components/ui/loading";
 import { useTranslation } from "react-i18next";
 
 interface DiscountManagementProps {

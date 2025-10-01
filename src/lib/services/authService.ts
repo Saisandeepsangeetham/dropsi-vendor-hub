@@ -1,4 +1,4 @@
-import { API_BASE_URL, handleApiResponse, snakeToCamel, getAuthToken, setAuthToken, setStoredVendor, removeAuthToken, removeStoredVendor, getStoredVendor } from '../utils';
+import { API_BASE_URL, handleApiResponse, getAuthToken, setAuthToken, setStoredVendor, removeAuthToken, removeStoredVendor, getStoredVendor } from '../utils';
 import { AuthResponse, ProfileResponse, UpdateProfileResponse, Vendor } from '../types';
 
 // API class for vendor authentication

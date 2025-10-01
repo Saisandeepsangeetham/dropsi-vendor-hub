@@ -10,38 +10,22 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import {
   Package,
-  Truck,
   IndianRupee,
   Edit,
   BarChart3,
-  Settings,
   CheckCircle,
   XCircle,
   Tag,
   Plus,
   Trash2,
   Save,
-  Percent,
-  X,
-  ArrowRight,
-  Loader2,
 } from "lucide-react";
 import {
   VendorProduct,
   ProductManager,
-  Product,
   DiscountManager,
 } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
