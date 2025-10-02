@@ -30,15 +30,15 @@ const Index = () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-6 py-24 md:py-32 relative z-10">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div className="text-left">
+          <div className="grid grid-cols-1 lg:[grid-template-columns:1.2fr_1fr] gap-10 items-center">
+            <div className="text-left lg:pr-4">
               <Badge
                 variant="secondary"
                 className="mb-6 px-4 py-1.5 text-sm font-medium bg-white/20 backdrop-blur-sm text-white"
               >
                 {t("homepage.platform_badge")}
               </Badge>
-              <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight">
+              <h1 className="text-5xl md:text-6xl font-bold mb-6 leading-tight hero-title">
                 {t("homepage.hero_title")}{" "}
                 <span className="text-blue-100">
                   {t("homepage.hero_title_highlight")}
@@ -49,14 +49,14 @@ const Index = () => {
                 {t("homepage.hero_description")}
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex flex-col sm:flex-row gap-4 tags">
                 <Button
                   asChild
                   size="lg"
-                  className="bg-white text-[#5CB8FF] hover:bg-blue-50 text-lg px-8 rounded-full"
+                  className="bg-white text-[#5CB8FF] hover:bg-blue-50 text-lg px-8 rounded-full cta-btn"
                 >
-                  <Link to="/vendor" className="flex items-center">
-                    {t("homepage.start_vendor_btn")}
+                  <Link to="/vendor" className="flex items-center gap-2">
+                    <span className="cta-label">{t("homepage.start_vendor_btn")}</span>
                     <Store className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
@@ -64,16 +64,16 @@ const Index = () => {
                   asChild
                   size="lg"
                   variant="outline"
-                  className="text-lg px-8 border-white text-white hover:bg-white/20 rounded-full"
+                  className="text-lg px-8 border-white text-white hover:bg-white/20 rounded-full cta-btn"
                 >
-                  <Link to="/customer" className="flex items-center">
-                    {t("homepage.order_groceries_btn")}
+                  <Link to="/customer" className="flex items-center gap-2">
+                    <span className="cta-label">{t("homepage.order_groceries_btn")}</span>
                     <ShoppingCart className="ml-2 h-5 w-5" />
                   </Link>
                 </Button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 md:gap-8 mt-12 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
+              <div className="flex flex-wrap items-center gap-4 md:gap-8 mt-2 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
                 <div className="flex items-center">
                   <div className="bg-white/30 backdrop-blur-sm rounded-full p-2">
                     <CheckCircle className="h-5 w-5" />

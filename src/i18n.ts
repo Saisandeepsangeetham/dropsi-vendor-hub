@@ -33,4 +33,15 @@ i18n
     },
   });
 
+// Keep HTML lang attribute in sync for locale-specific styling/typography
+if (typeof document !== "undefined") {
+  const applyHtmlLang = () => {
+    const currentLang = i18n.language || "en";
+    document.documentElement.setAttribute("lang", currentLang);
+  };
+
+  applyHtmlLang();
+  i18n.on("languageChanged", () => applyHtmlLang());
+}
+
 export default i18n;
