@@ -73,7 +73,7 @@ const Index = () => {
                 </Button>
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 md:gap-8 mt-2 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
+              <div className="flex flex-wrap items-center gap-4 md:gap-8 mt-7 bg-white/10 backdrop-blur-sm p-4 rounded-xl border border-white/20">
                 <div className="flex items-center">
                   <div className="bg-white/30 backdrop-blur-sm rounded-full p-2">
                     <CheckCircle className="h-5 w-5" />

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +15,11 @@ const languages = [
 
 export const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false); // State to manage dropdown visibility
 
   const changeLanguage = (languageCode: string) => {
     i18n.changeLanguage(languageCode);
+    setIsDropdownOpen(false); // Close the dropdown after selecting a language
   };
 
   const getCurrentLanguage = () => {
@@ -26,9 +29,14 @@ export const LanguageSwitcher = () => {
   };
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => setIsDropdownOpen(!isDropdownOpen)} // Toggle dropdown visibility
+        >
           <Globe className="h-4 w-4" />
           {getCurrentLanguage().nativeName}
         </Button>
