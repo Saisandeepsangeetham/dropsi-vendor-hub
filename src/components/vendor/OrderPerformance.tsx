@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { BarChart3, TrendingUp, Package, IndianRupee, ShoppingCart, Clock } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip } from "recharts";
 import { ChartConfig, ChartContainer } from "@/components/ui/chart";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 interface OrderPerformanceProps {
   vendorId: string;
@@ -14,6 +15,7 @@ interface OrderPerformanceProps {
 const OrderPerformance = ({ vendorId }: OrderPerformanceProps) => {
   const [timeRange, setTimeRange] = useState("today");
   const [chartMetric, setChartMetric] = useState("orders");
+  const { t }  = useTranslation();
 
   // Generate mock chart data based on time range
   const generateChartData = () => {
@@ -93,18 +95,56 @@ const OrderPerformance = ({ vendorId }: OrderPerformanceProps) => {
       { id: "3", name: "Brown Bread", quantity: 32, revenue: 1600 },
     ],
     recentOrders: [
-      { id: "ORD001", customer: "John Doe", items: 3, total: 450, status: "delivered", date: "2024-01-15" },
-      { id: "ORD002", customer: "Jane Smith", items: 5, total: 680, status: "processing", date: "2024-01-15" },
-      { id: "ORD003", customer: "Bob Wilson", items: 2, total: 290, status: "delivered", date: "2024-01-14" },
-    ]
+      {
+        id: "ORD001",
+        customer: "John Doe",
+        items: 3,
+        total: 450,
+        status: "delivered",
+        date: "2024-01-15",
+      },
+      {
+        id: "ORD002",
+        customer: "Jane Smith",
+        items: 5,
+        total: 680,
+        status: "processing",
+        date: "2024-01-15",
+      },
+      {
+        id: "ORD003",
+        customer: "Bob Wilson",
+        items: 2,
+        total: 290,
+        status: "delivered",
+        date: "2024-01-14",
+      },
+    ],
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "delivered": return "success";
-      case "processing": return "warning";
-      case "cancelled": return "destructive";
-      default: return "secondary";
+      case "delivered":
+        return "success";
+      case "processing":
+        return "warning";
+      case "cancelled":
+        return "destructive";
+      default:
+        return "secondary";
+    }
+  };
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case "delivered":
+        return t("order_performance.delivered");
+      case "processing":
+        return t("order_performance.processing");
+      case "cancelled":
+        return t("order_performance.cancelled");
+      default:
+        return status;
     }
   };
 
@@ -269,25 +309,36 @@ const OrderPerformance = ({ vendorId }: OrderPerformanceProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <Package className="h-5 w-5" />
-            Top Performing Products
+            {t("order_performance.top_performing_products")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {performanceData.topProducts.map((product, index) => (
-              <div key={product.id} className="flex items-center justify-between p-3 border rounded-lg">
+              <div
+                key={product.id}
+                className="flex items-center justify-between p-3 border rounded-lg"
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-semibold text-primary">#{index + 1}</span>
+                    <span className="text-sm font-semibold text-primary">
+                      #{index + 1}
+                    </span>
                   </div>
                   <div>
                     <p className="font-semibold">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">{product.quantity} units sold</p>
+                    <p className="text-sm text-muted-foreground">
+                      {product.quantity} {t("order_performance.units_sold")}
+                    </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold">₹{product.revenue.toLocaleString()}</p>
-                  <p className="text-sm text-muted-foreground">Revenue</p>
+                  <p className="font-semibold">
+                    ₹{product.revenue.toLocaleString()}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {t("order_performance.revenue")}
+                  </p>
                 </div>
               </div>
             ))}
@@ -300,26 +351,35 @@ const OrderPerformance = ({ vendorId }: OrderPerformanceProps) => {
         <CardHeader>
           <CardTitle className="flex items-center gap-3">
             <Clock className="h-5 w-5" />
-            Recent Orders
+            {t("order_performance.recent_orders")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             {performanceData.recentOrders.map((order) => (
-              <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+              <div
+                key={order.id}
+                className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
                 <div className="flex items-center gap-4">
                   <div>
                     <p className="font-semibold">{order.id}</p>
-                    <p className="text-sm text-muted-foreground">{order.customer}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {order.customer}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="text-right">
-                    <p className="font-semibold">{order.items} items</p>
-                    <p className="text-sm text-muted-foreground">₹{order.total}</p>
+                    <p className="font-semibold">
+                      {order.items} {t("order_performance.items")}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      ₹{order.total}
+                    </p>
                   </div>
                   <Badge variant={getStatusColor(order.status) as any}>
-                    {order.status}
+                    {getStatusText(order.status)}
                   </Badge>
                   <p className="text-sm text-muted-foreground min-w-20">
                     {new Date(order.date).toLocaleDateString()}
@@ -329,7 +389,9 @@ const OrderPerformance = ({ vendorId }: OrderPerformanceProps) => {
             ))}
           </div>
           <div className="text-center mt-4">
-            <Button variant="outline">View All Orders</Button>
+            <Button variant="outline">
+              {t("order_performance.view_all_orders")}
+            </Button>
           </div>
         </CardContent>
       </Card>

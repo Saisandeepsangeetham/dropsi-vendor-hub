@@ -4,7 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Search, Filter, Package, Truck, X, Trash2, ArrowLeft, CheckCircle, Loader2, ChevronDown, Image as ImageIcon, DollarSign, ShoppingCart, LogOut, Check } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Package,
+  Truck,
+  X,
+  Trash2,
+  ArrowLeft,
+  CheckCircle,
+  Loader2,
+  ChevronDown,
+  Image as ImageIcon,
+  DollarSign,
+  ShoppingCart,
+  LogOut,
+  Check,
+} from "lucide-react";
 import { Product, VendorProduct, ProductManager } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import Loading from "@/components/ui/loading";
@@ -72,15 +88,23 @@ interface ProductPricing {
     mrp_display?: string;
     sellingPrice_display?: string;
     stockQty_display?: string;
-  }
+  };
 }
 
-const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAddingToExisting = false, onCancel, showHeader = true }: ProductCatalogProps) => {
+const ProductCatalog = ({
+  onProductsSelected,
+  existingVendorProducts = [],
+  isAddingToExisting = false,
+  onCancel,
+  showHeader = true,
+}: ProductCatalogProps) => {
   const { t } = useTranslation();
   const [selectedBrand, setSelectedBrand] = useState("");
   const [selectedProduct, setSelectedProduct] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
+  const [selectedProducts, setSelectedProducts] = useState<Set<string>>(
+    new Set()
+  );
   const [products, setProducts] = useState<Product[]>([]);
   const [productPricing, setProductPricing] = useState<ProductPricing>({});
   const [isLoading, setIsLoading] = useState(true);
@@ -94,7 +118,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   const [productOpen, setProductOpen] = useState(false);
 
   // Get existing product IDs to show them as already added
-  const existingProductIds = new Set(existingVendorProducts.map(vp => vp.productId));
+  const existingProductIds = new Set(
+    existingVendorProducts.map((vp) => vp.productId)
+  );
 
   // Load products from API
   useEffect(() => {
@@ -105,10 +131,13 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
         const allProducts = await ProductManager.getAllProducts();
         setProducts(allProducts);
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to load products');
+        setError(
+          error instanceof Error ? error.message : "Failed to load products"
+        );
         toast({
           title: "Error loading products",
-          description: error instanceof Error ? error.message : "Please try again later.",
+          description:
+            error instanceof Error ? error.message : "Please try again later.",
           variant: "destructive",
         });
       } finally {
@@ -123,41 +152,43 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   useEffect(() => {
     const newPricing: ProductPricing = {};
 
-    selectedProducts.forEach(productId => {
+    selectedProducts.forEach((productId) => {
       if (!productPricing[productId]) {
         newPricing[productId] = {
           mrp: 0,
           sellingPrice: 0,
           stockQty: 0,
           deliverySupported: true,
-          mrp_display: '',
-          sellingPrice_display: '',
-          stockQty_display: ''
+          mrp_display: "",
+          sellingPrice_display: "",
+          stockQty_display: "",
         };
       }
     });
 
     if (Object.keys(newPricing).length > 0) {
-      setProductPricing(prev => ({ ...prev, ...newPricing }));
+      setProductPricing((prev) => ({ ...prev, ...newPricing }));
     }
   }, [selectedProducts]);
 
   // Get unique brands from products
-  const brands = Array.from(new Set(products.map(p => p.brandName))).sort();
+  const brands = Array.from(new Set(products.map((p) => p.brandName))).sort();
 
   // Get products filtered by brand
-  const brandFilteredProducts = selectedBrand ?
-    products.filter(p => p.brandName === selectedBrand && p.isActive) :
-    products.filter(p => p.isActive);
+  const brandFilteredProducts = selectedBrand
+    ? products.filter((p) => p.brandName === selectedBrand && p.isActive)
+    : products.filter((p) => p.isActive);
 
   // Get filtered products based on all criteria
-  const filteredProducts = brandFilteredProducts.filter(product => {
-    const matchesSearch = searchTerm === "" ||
+  const filteredProducts = brandFilteredProducts.filter((product) => {
+    const matchesSearch =
+      searchTerm === "" ||
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.brandName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       product.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesProduct = selectedProduct === "" || product.id === selectedProduct;
+    const matchesProduct =
+      selectedProduct === "" || product.id === selectedProduct;
 
     return matchesSearch && matchesProduct;
   });
@@ -190,12 +221,14 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
 
   // Check if form is valid
   const isFormValid = () => {
-    return Array.from(selectedProducts).every(productId => {
+    return Array.from(selectedProducts).every((productId) => {
       const config = productPricing[productId];
-      return config?.sellingPrice > 0 &&
+      return (
+        config?.sellingPrice > 0 &&
         config?.mrp > 0 &&
         config?.stockQty > 0 &&
-        config.mrp >= config.sellingPrice; // MRP should be >= selling price
+        config.mrp >= config.sellingPrice
+      ); // MRP should be >= selling price
     });
   };
 
@@ -203,7 +236,8 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
     if (!isFormValid()) {
       toast({
         title: "Invalid configuration",
-        description: "Please ensure all fields are filled and MRP is greater than or equal to selling price.",
+        description:
+          "Please ensure all fields are filled and MRP is greater than or equal to selling price.",
         variant: "destructive",
       });
       return;
@@ -213,14 +247,14 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
       setIsSubmitting(true);
 
       // Prepare data for bulk add API
-      const productsToAdd = Array.from(selectedProducts).map(productId => {
+      const productsToAdd = Array.from(selectedProducts).map((productId) => {
         const config = productPricing[productId];
         return {
           productId: productId,
           price: config.sellingPrice,
           mrp: config.mrp,
           stockQty: config.stockQty,
-          deliverySupported: config.deliverySupported
+          deliverySupported: config.deliverySupported,
         };
       });
 
@@ -229,17 +263,19 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
 
       if (response.success) {
         // Convert the response to VendorProduct format for the dashboard
-        const vendorProducts: VendorProduct[] = response.results.success.map((vp: any) => ({
-          id: vp.id,
-          vendorId: vp.vendorId,
-          productId: vp.productId,
-          price: vp.price,
-          mrp: vp.mrp,
-          stockQty: vp.stockQty,
-          isActive: vp.isActive,
-          deliverySupported: vp.deliverySupported,
-          product: products.find(p => p.id === vp.productId)!
-        }));
+        const vendorProducts: VendorProduct[] = response.results.success.map(
+          (vp: any) => ({
+            id: vp.id,
+            vendorId: vp.vendorId,
+            productId: vp.productId,
+            price: vp.price,
+            mrp: vp.mrp,
+            stockQty: vp.stockQty,
+            isActive: vp.isActive,
+            deliverySupported: vp.deliverySupported,
+            product: products.find((p) => p.id === vp.productId)!,
+          })
+        );
 
         onProductsSelected(vendorProducts);
 
@@ -253,7 +289,10 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
     } catch (error) {
       toast({
         title: "Failed to add products",
-        description: error instanceof Error ? error.message : "Failed to add products. Please try again.",
+        description:
+          error instanceof Error
+            ? error.message
+            : "Failed to add products. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -274,7 +313,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   // Select all visible products
   const handleSelectAllVisible = () => {
     const newSelected = new Set(selectedProducts);
-    paginatedProducts.forEach(product => {
+    paginatedProducts.forEach((product) => {
       if (!existingProductIds.has(product.id)) {
         newSelected.add(product.id);
       }
@@ -285,7 +324,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   // Deselect all visible products
   const handleDeselectAllVisible = () => {
     const newSelected = new Set(selectedProducts);
-    paginatedProducts.forEach(product => {
+    paginatedProducts.forEach((product) => {
       newSelected.delete(product.id);
     });
     setSelectedProducts(newSelected);
@@ -322,49 +361,57 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
   };
 
   // Update product pricing
-  const updateProductPricing = (productId: string, field: string, value: number | boolean) => {
-    setProductPricing(prev => ({
+  const updateProductPricing = (
+    productId: string,
+    field: string,
+    value: number | boolean
+  ) => {
+    setProductPricing((prev) => ({
       ...prev,
       [productId]: {
         ...prev[productId],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
   // Format number input value
-  const handleNumberInputChange = (productId: string, field: string, value: string) => {
+  const handleNumberInputChange = (
+    productId: string,
+    field: string,
+    value: string
+  ) => {
     // Allow empty string
-    if (value === '') {
-      setProductPricing(prev => ({
+    if (value === "") {
+      setProductPricing((prev) => ({
         ...prev,
         [productId]: {
           ...prev[productId],
-          [`${field}_display`]: '',
-          [field]: 0
-        }
+          [`${field}_display`]: "",
+          [field]: 0,
+        },
       }));
       return;
     }
 
     // For stock quantity, only allow integers
-    if (field === 'stockQty') {
+    if (field === "stockQty") {
       const integerRegex = /^[0-9]+$/;
       if (!integerRegex.test(value)) {
         return; // Reject invalid input
       }
 
       // Remove leading zeros
-      const formattedValue = value.replace(/^0+/, '') || '0';
+      const formattedValue = value.replace(/^0+/, "") || "0";
       const numValue = parseInt(formattedValue) || 0;
 
-      setProductPricing(prev => ({
+      setProductPricing((prev) => ({
         ...prev,
         [productId]: {
           ...prev[productId],
           [`${field}_display`]: formattedValue,
-          [field]: numValue
-        }
+          [field]: numValue,
+        },
       }));
       return;
     }
@@ -376,34 +423,34 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
     }
 
     // Handle decimal point cases
-    if (value === '.' || value === '0.') {
-      setProductPricing(prev => ({
+    if (value === "." || value === "0.") {
+      setProductPricing((prev) => ({
         ...prev,
         [productId]: {
           ...prev[productId],
           [`${field}_display`]: value,
-          [field]: 0
-        }
+          [field]: 0,
+        },
       }));
       return;
     }
 
     // Remove leading zeros but keep decimal values
     let formattedValue = value;
-    if (value.length > 1 && value.startsWith('0') && !value.startsWith('0.')) {
-      formattedValue = value.replace(/^0+/, '') || '0';
+    if (value.length > 1 && value.startsWith("0") && !value.startsWith("0.")) {
+      formattedValue = value.replace(/^0+/, "") || "0";
     }
 
     const numValue = parseFloat(formattedValue) || 0;
 
     // Store both the display value and the numeric value
-    setProductPricing(prev => ({
+    setProductPricing((prev) => ({
       ...prev,
       [productId]: {
         ...prev[productId],
         [`${field}_display`]: formattedValue,
-        [field]: numValue
-      }
+        [field]: numValue,
+      },
     }));
   };
 
@@ -426,11 +473,11 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
           <div className="text-red-500 mb-4">
             <Package className="h-12 w-12 mx-auto" />
           </div>
-          <h3 className="text-lg font-semibold mb-2">Failed to load products</h3>
+          <h3 className="text-lg font-semibold mb-2">
+            Failed to load products
+          </h3>
           <p className="text-muted-foreground mb-4">{error}</p>
-          <Button onClick={() => window.location.reload()}>
-            Try Again
-          </Button>
+          <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
       </div>
     );
@@ -467,15 +514,17 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                 <p className="text-blue-100 text-sm">
                   {isAddingToExisting
                     ? "Select additional products to add to your inventory"
-                    : "Add products to your inventory"
-                  }
+                    : "Add products to your inventory"}
                 </p>
               </div>
             </div>
 
             {vendor && (
               <div className="flex items-center gap-3 ml-auto">
-                <Badge variant="secondary" className="text-sm bg-white/20 text-white font-bold uppercase">
+                <Badge
+                  variant="secondary"
+                  className="text-sm bg-white/20 text-white font-bold uppercase"
+                >
                   {vendor.displayName}
                 </Badge>
                 <DropdownMenu>
@@ -489,7 +538,10 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-700">
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="text-red-600 focus:text-red-700"
+                    >
                       <LogOut className="h-4 w-4 mr-2" /> Sign out
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -500,7 +552,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
         </div>
       )}
 
-      <div className={`max-w-7xl mx-auto p-6 ${showHeader ? 'pb-24' : ''}`}>
+      <div className={`max-w-7xl mx-auto p-6 ${showHeader ? "pb-24" : ""}`}>
         {/* Search and Filter Section */}
         <Card className="mb-6 shadow-card">
           <CardContent className="p-6">
@@ -509,7 +561,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
               <div className="flex-1 relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
                 <Input
-                  placeholder={t('catalog.searchProducts')}
+                  placeholder={t("catalog.searchProducts")}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10"
@@ -528,7 +580,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                     >
                       {selectedBrand
                         ? brands.find((brand) => brand === selectedBrand)
-                        : t('catalog.selectBrand')}
+                        : t("catalog.selectBrand")}
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -543,8 +595,11 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                             onSelect={() => handleBrandSelect("")}
                           >
                             <Check
-                              className={`mr-2 h-4 w-4 ${selectedBrand === "" ? "opacity-100" : "opacity-0"
-                                }`}
+                              className={`mr-2 h-4 w-4 ${
+                                selectedBrand === ""
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              }`}
                             />
                             All brands
                           </CommandItem>
@@ -555,8 +610,11 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                               onSelect={() => handleBrandSelect(brand)}
                             >
                               <Check
-                                className={`mr-2 h-4 w-4 ${selectedBrand === brand ? "opacity-100" : "opacity-0"
-                                  }`}
+                                className={`mr-2 h-4 w-4 ${
+                                  selectedBrand === brand
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                }`}
                               />
                               {brand}
                             </CommandItem>
@@ -580,14 +638,20 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                       disabled={!selectedBrand}
                     >
                       {selectedProduct
-                        ? toTitleCase(brandFilteredProducts.find((product) => product.id === selectedProduct)?.name || "")
-                        : selectedBrand ? t('catalog.selectProduct') : t('catalog.selectBrand')}
+                        ? toTitleCase(
+                            brandFilteredProducts.find(
+                              (product) => product.id === selectedProduct
+                            )?.name || ""
+                          )
+                        : selectedBrand
+                        ? t("catalog.selectProduct")
+                        : t("catalog.selectBrand")}
                       <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-[250px] p-0">
                     <Command>
-                      <CommandInput placeholder={t('catalog.searchProducts')} />
+                      <CommandInput placeholder={t("catalog.searchProducts")} />
                       <CommandList>
                         <CommandEmpty>No product found.</CommandEmpty>
                         <CommandGroup>
@@ -596,8 +660,11 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                             onSelect={() => handleProductSelect("")}
                           >
                             <Check
-                              className={`mr-2 h-4 w-4 ${selectedProduct === "" ? "opacity-100" : "opacity-0"
-                                }`}
+                              className={`mr-2 h-4 w-4 ${
+                                selectedProduct === ""
+                                  ? "opacity-100"
+                                  : "opacity-0"
+                              }`}
                             />
                             All products
                           </CommandItem>
@@ -608,8 +675,11 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                               onSelect={() => handleProductSelect(product.id)}
                             >
                               <Check
-                                className={`mr-2 h-4 w-4 ${selectedProduct === product.id ? "opacity-100" : "opacity-0"
-                                  }`}
+                                className={`mr-2 h-4 w-4 ${
+                                  selectedProduct === product.id
+                                    ? "opacity-100"
+                                    : "opacity-0"
+                                }`}
                               />
                               {toTitleCase(product.name)}
                             </CommandItem>
@@ -635,9 +705,14 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
             {/* Active Filters Display */}
             {(selectedBrand || selectedProduct || searchTerm) && (
               <div className="mt-4 flex flex-wrap gap-2">
-                <span className="text-sm font-medium text-muted-foreground">Active filters:</span>
+                <span className="text-sm font-medium text-muted-foreground">
+                  Active filters:
+                </span>
                 {selectedBrand && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
                     Brand: {selectedBrand}
                     <X
                       className="h-3 w-3 cursor-pointer"
@@ -646,8 +721,16 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                   </Badge>
                 )}
                 {selectedProduct && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
-                    Product: {toTitleCase(brandFilteredProducts.find(p => p.id === selectedProduct)?.name || "")}
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
+                    Product:{" "}
+                    {toTitleCase(
+                      brandFilteredProducts.find(
+                        (p) => p.id === selectedProduct
+                      )?.name || ""
+                    )}
                     <X
                       className="h-3 w-3 cursor-pointer"
                       onClick={() => setSelectedProduct("")}
@@ -655,7 +738,10 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                   </Badge>
                 )}
                 {searchTerm && (
-                  <Badge variant="secondary" className="flex items-center gap-1">
+                  <Badge
+                    variant="secondary"
+                    className="flex items-center gap-1"
+                  >
                     Search: "{searchTerm}"
                     <X
                       className="h-3 w-3 cursor-pointer"
@@ -673,7 +759,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
           <Card className="mb-6 shadow-card">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Selected Products ({selectedProducts.size})</h3>
+                <h3 className="font-semibold">
+                  Selected Products ({selectedProducts.size})
+                </h3>
                 <Button variant="outline" size="sm" onClick={handleClearAll}>
                   <X className="h-4 w-4 mr-1" />
                   Clear All
@@ -681,10 +769,15 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
               </div>
               <div className="flex flex-wrap gap-2">
                 {products
-                  .filter(product => selectedProducts.has(product.id))
-                  .map(product => (
-                    <div key={product.id} className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full">
-                      <span className="text-sm">{toTitleCase(product.name)}</span>
+                  .filter((product) => selectedProducts.has(product.id))
+                  .map((product) => (
+                    <div
+                      key={product.id}
+                      className="flex items-center gap-2 bg-muted px-3 py-1 rounded-full"
+                    >
+                      <span className="text-sm">
+                        {toTitleCase(product.name)}
+                      </span>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -704,8 +797,12 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
         <Card className="shadow-card overflow-hidden">
           <div className="flex justify-between items-center p-4 border-b">
             <div className="flex items-center gap-2">
-              <h3 className="font-semibold">Products ({filteredProducts.length})</h3>
-              <Badge variant="secondary">{selectedProducts.size} selected</Badge>
+              <h3 className="font-semibold">
+                Products ({filteredProducts.length})
+              </h3>
+              <Badge variant="secondary">
+                {selectedProducts.size} selected
+              </Badge>
             </div>
             <div className="flex items-center gap-2">
               <DropdownMenu>
@@ -749,7 +846,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedProducts.map(product => {
+                  paginatedProducts.map((product) => {
                     const isSelected = selectedProducts.has(product.id);
                     const isAlreadyAdded = existingProductIds.has(product.id);
                     const pricing = productPricing[product.id];
@@ -758,16 +855,27 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                       <>
                         <TableRow
                           key={product.id}
-                          className={`${isSelected ? 'bg-primary/5' : ''} ${isAlreadyAdded ? 'opacity-60' : 'cursor-pointer hover:bg-muted/50'}`}
-                          onClick={() => !isAlreadyAdded && handleRowClick(product)}
+                          className={`${isSelected ? "bg-primary/5" : ""} ${
+                            isAlreadyAdded
+                              ? "opacity-60"
+                              : "cursor-pointer hover:bg-muted/50"
+                          }`}
+                          onClick={() =>
+                            !isAlreadyAdded && handleRowClick(product)
+                          }
                         >
-                          <TableCell className="text-center" onClick={(e) => e.stopPropagation()}>
+                          <TableCell
+                            className="text-center"
+                            onClick={(e) => e.stopPropagation()}
+                          >
                             {isAlreadyAdded ? (
                               <CheckCircle className="h-4 w-4 text-success mx-auto" />
                             ) : (
                               <Checkbox
                                 checked={isSelected}
-                                onCheckedChange={() => handleProductToggle(product.id)}
+                                onCheckedChange={() =>
+                                  handleProductToggle(product.id)
+                                }
                                 className="mx-auto"
                               />
                             )}
@@ -783,7 +891,8 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                                         alt={product.name}
                                         className="w-full h-full object-cover"
                                         onError={(e) => {
-                                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                          (e.target as HTMLImageElement).src =
+                                            "/placeholder.svg";
                                         }}
                                       />
                                     ) : (
@@ -799,27 +908,39 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
                                         alt={product.name}
                                         className="w-full h-full object-contain"
                                         onError={(e) => {
-                                          (e.target as HTMLImageElement).src = '/placeholder.svg';
+                                          (e.target as HTMLImageElement).src =
+                                            "/placeholder.svg";
                                         }}
                                       />
                                     ) : (
                                       <div className="flex flex-col items-center justify-center text-muted-foreground">
                                         <ImageIcon className="h-8 w-8 mb-2" />
-                                        <span className="text-xs">No image</span>
+                                        <span className="text-xs">
+                                          No image
+                                        </span>
                                       </div>
                                     )}
                                   </div>
-                                  <p className="mt-2 text-sm font-medium">{toTitleCase(product.name)}</p>
+                                  <p className="mt-2 text-sm font-medium">
+                                    {toTitleCase(product.name)}
+                                  </p>
                                 </TooltipContent>
                               </Tooltip>
                             </TooltipProvider>
                           </TableCell>
-                          <TableCell className="font-medium">{toTitleCase(product.name)}</TableCell>
+                          <TableCell className="font-medium">
+                            {toTitleCase(product.name)}
+                          </TableCell>
                           <TableCell>{product.brandName}</TableCell>
                           <TableCell>{product.uom}</TableCell>
                           <TableCell className="text-center">
                             {isAlreadyAdded ? (
-                              <Badge variant="outline" className="text-success border-success">Added</Badge>
+                              <Badge
+                                variant="outline"
+                                className="text-success border-success"
+                              >
+                                Added
+                              </Badge>
                             ) : isSelected ? (
                               <Badge variant="secondary">Selected</Badge>
                             ) : (
@@ -830,56 +951,100 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
 
                         {/* Pricing row for selected products */}
                         {isSelected && !isAlreadyAdded && (
-                          <TableRow className="bg-muted/30 border-t border-dashed" key={`${product.id}-pricing`}>
+                          <TableRow
+                            className="bg-muted/30 border-t border-dashed"
+                            key={`${product.id}-pricing`}
+                          >
                             <TableCell colSpan={6} className="py-2 px-4">
                               <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">{t('catalog.mrp')} (₹)</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {t("catalog.mrp")} (₹)
+                                  </div>
                                   <Input
                                     type="text"
                                     inputMode="decimal"
-                                    value={pricing?.mrp_display || ''}
-                                    onChange={(e) => handleNumberInputChange(product.id, 'mrp', e.target.value)}
+                                    value={pricing?.mrp_display || ""}
+                                    onChange={(e) =>
+                                      handleNumberInputChange(
+                                        product.id,
+                                        "mrp",
+                                        e.target.value
+                                      )
+                                    }
                                     className="h-8"
                                     onClick={(e) => e.stopPropagation()}
                                     placeholder="Enter MRP"
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">{t('catalog.sellingPrice')} (₹)</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {t("catalog.sellingPrice")} (₹)
+                                  </div>
                                   <Input
                                     type="text"
                                     inputMode="decimal"
-                                    value={pricing?.sellingPrice_display || ''}
-                                    onChange={(e) => handleNumberInputChange(product.id, 'sellingPrice', e.target.value)}
+                                    value={pricing?.sellingPrice_display || ""}
+                                    onChange={(e) =>
+                                      handleNumberInputChange(
+                                        product.id,
+                                        "sellingPrice",
+                                        e.target.value
+                                      )
+                                    }
                                     className="h-8"
                                     onClick={(e) => e.stopPropagation()}
                                     placeholder="Enter selling price"
                                   />
                                   {pricing?.sellingPrice > pricing?.mrp && (
-                                    <p className="text-xs text-destructive mt-1">Price cannot exceed MRP</p>
+                                    <p className="text-xs text-destructive mt-1">
+                                      Price cannot exceed MRP
+                                    </p>
                                   )}
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">{t('catalog.stockQuantity')}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {t("catalog.stockQuantity")}
+                                  </div>
                                   <Input
                                     type="text"
                                     inputMode="numeric"
-                                    value={pricing?.stockQty_display || ''}
-                                    onChange={(e) => handleNumberInputChange(product.id, 'stockQty', e.target.value)}
+                                    value={pricing?.stockQty_display || ""}
+                                    onChange={(e) =>
+                                      handleNumberInputChange(
+                                        product.id,
+                                        "stockQty",
+                                        e.target.value
+                                      )
+                                    }
                                     className="h-8"
                                     onClick={(e) => e.stopPropagation()}
                                     placeholder="Enter quantity"
                                   />
                                 </div>
                                 <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">Delivery Service</div>
-                                  <div className="flex items-center space-x-2 h-8" onClick={(e) => e.stopPropagation()}>
+                                  <div className="text-xs text-muted-foreground">
+                                    Delivery Service
+                                  </div>
+                                  <div
+                                    className="flex items-center space-x-2 h-8"
+                                    onClick={(e) => e.stopPropagation()}
+                                  >
                                     <Switch
-                                      checked={pricing?.deliverySupported ?? true}
-                                      onCheckedChange={(checked) => updateProductPricing(product.id, 'deliverySupported', checked)}
+                                      checked={
+                                        pricing?.deliverySupported ?? true
+                                      }
+                                      onCheckedChange={(checked) =>
+                                        updateProductPricing(
+                                          product.id,
+                                          "deliverySupported",
+                                          checked
+                                        )
+                                      }
                                     />
-                                    <span className="text-sm">DropSi handles delivery</span>
+                                    <span className="text-sm">
+                                      DropSi handles delivery
+                                    </span>
                                   </div>
                                 </div>
                               </div>
@@ -898,7 +1063,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
           {totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t">
               <div className="text-sm text-muted-foreground">
-                Showing {(page - 1) * itemsPerPage + 1} to {Math.min(page * itemsPerPage, filteredProducts.length)} of {filteredProducts.length} products
+                Showing {(page - 1) * itemsPerPage + 1} to{" "}
+                {Math.min(page * itemsPerPage, filteredProducts.length)} of{" "}
+                {filteredProducts.length} products
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -932,7 +1099,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
             size="lg"
             onClick={handleContinue}
             className="px-8 shadow-xl"
-            disabled={selectedProducts.size === 0 || !isFormValid() || isSubmitting}
+            disabled={
+              selectedProducts.size === 0 || !isFormValid() || isSubmitting
+            }
           >
             {isSubmitting ? (
               <>
@@ -941,7 +1110,7 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
               </>
             ) : (
               <>
-                {t('catalog.addProducts')} ({selectedProducts.size})
+                {t("catalog.addProducts")} ({selectedProducts.size})
                 <Truck className="ml-2 h-5 w-5" />
               </>
             )}
@@ -952,7 +1121,9 @@ const ProductCatalog = ({ onProductsSelected, existingVendorProducts = [], isAdd
         {filteredProducts.length === 0 && !isLoading && (
           <div className="text-center py-12">
             <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-2">{t('catalog.noProductsFound')}</h3>
+            <h3 className="text-lg font-semibold mb-2">
+              {t("catalog.noProductsFound")}
+            </h3>
             <p className="text-muted-foreground">
               Try adjusting your search terms or filters
             </p>
