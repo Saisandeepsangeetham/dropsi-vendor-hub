@@ -156,7 +156,7 @@ html[lang="ta"] .text-7xl {
 /* Tamil-only: keep hero title to exactly 3 lines and slightly smaller */
 html[lang="ta"] .hero-title {
   line-height: 1.12;
-  font-size: clamp(2.25rem, 4.6vw, 3.15rem);
+  font-size: clamp(2.25rem, 5.5vw, 4rem);
   max-width: 36ch; /* allow first line to grab one extra word */
   width: min(100%, 36ch);
   text-wrap: balance;

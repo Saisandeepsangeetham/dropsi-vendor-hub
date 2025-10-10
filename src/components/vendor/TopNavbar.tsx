@@ -43,7 +43,8 @@ const TopNavbar = () => {
 
         // Show translation effect
         setTimeout(() => {
-            setLanguage(prev => prev === 'en' ? 'ta' : 'en');
+            const newLanguage = language === 'en' ? 'ta' : 'en';
+            setLanguage(newLanguage);
         }, 300);
 
         // Reset animations after delay
@@ -203,7 +204,7 @@ const TopNavbar = () => {
                                     onClick={handleProfileClick}
                                     className="cursor-pointer hover:bg-gray-50 rounded-lg mx-1 my-1 px-3 py-2"
                                 >
-                                    Profile
+                                    {t('nav.profile')}
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator className="my-2" />
                                 <DropdownMenuItem

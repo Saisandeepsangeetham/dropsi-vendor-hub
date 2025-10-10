@@ -19,9 +19,8 @@ const VendorProfile: React.FC = () => {
     email: vendor?.email || '',
     phone: vendor?.phone || '',
     address: vendor?.address || '',
-    businessName: vendor?.businessName || '',
-    gstNumber: vendor?.gstNumber || '',
-    panNumber: vendor?.panNumber || '',
+    legalName: vendor?.legalName || '',
+    gstin: vendor?.gstin || '',
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -43,9 +42,8 @@ const VendorProfile: React.FC = () => {
       email: vendor?.email || '',
       phone: vendor?.phone || '',
       address: vendor?.address || '',
-      businessName: vendor?.businessName || '',
-      gstNumber: vendor?.gstNumber || '',
-      panNumber: vendor?.panNumber || '',
+      legalName: vendor?.legalName || '',
+      gstin: vendor?.gstin || '',
     });
     setIsEditing(false);
   };
@@ -77,12 +75,12 @@ const VendorProfile: React.FC = () => {
           {isEditing ? (
             <>
               <X className="h-4 w-4" />
-              Cancel
+              {t('common.cancel')}
             </>
           ) : (
             <>
               <Edit className="h-4 w-4" />
-              Edit Profile
+              {t('vendor_profile.edit_profile')}
             </>
           )}
         </Button>
@@ -186,42 +184,28 @@ const VendorProfile: React.FC = () => {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Information</h3>
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="businessName">Business Name</Label>
+                    <Label htmlFor="legalName">Legal Business Name</Label>
                     {isEditing ? (
                       <Input
-                        id="businessName"
-                        value={formData.businessName}
-                        onChange={(e) => handleInputChange('businessName', e.target.value)}
+                        id="legalName"
+                        value={formData.legalName}
+                        onChange={(e) => handleInputChange('legalName', e.target.value)}
                       />
                     ) : (
-                      <p className="text-gray-700">{vendor.businessName || 'Not provided'}</p>
+                      <p className="text-gray-700">{vendor.legalName || 'Not provided'}</p>
                     )}
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="gstNumber">GST Number</Label>
-                      {isEditing ? (
-                        <Input
-                          id="gstNumber"
-                          value={formData.gstNumber}
-                          onChange={(e) => handleInputChange('gstNumber', e.target.value)}
-                        />
-                      ) : (
-                        <p className="text-gray-700">{vendor.gstNumber || 'Not provided'}</p>
-                      )}
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="panNumber">PAN Number</Label>
-                      {isEditing ? (
-                        <Input
-                          id="panNumber"
-                          value={formData.panNumber}
-                          onChange={(e) => handleInputChange('panNumber', e.target.value)}
-                        />
-                      ) : (
-                        <p className="text-gray-700">{vendor.panNumber || 'Not provided'}</p>
-                      )}
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="gstin">GSTIN</Label>
+                    {isEditing ? (
+                      <Input
+                        id="gstin"
+                        value={formData.gstin}
+                        onChange={(e) => handleInputChange('gstin', e.target.value)}
+                      />
+                    ) : (
+                      <p className="text-gray-700">{vendor.gstin || 'Not provided'}</p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="address" className="flex items-center gap-2">
