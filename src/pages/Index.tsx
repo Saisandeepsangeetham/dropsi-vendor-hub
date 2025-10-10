@@ -160,7 +160,7 @@ const Index = () => {
       </div>
 
       {/* How It Works Section - added margin-top to account for the wave overlap */}
-      <div className="py-24 mt-12 bg-white">
+      <div className="py-18 mt-8 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-16">
             <Badge
