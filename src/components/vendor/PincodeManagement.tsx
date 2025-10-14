@@ -1,22 +1,39 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MapPin, Plus, Trash2, Save, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { PincodeManager, VendorPincode, PincodeDetails } from "@/lib/api";
+import { useTranslation } from "react-i18next";
 
 interface PincodeManagementProps {
   vendorId: string;
 }
 
 const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
-  const [vendorPincode, setVendorPincode] = useState<VendorPincode | null>(null);
-  const [availablePincodes, setAvailablePincodes] = useState<PincodeDetails[]>([]);
+  const { t } = useTranslation();
+  const [vendorPincode, setVendorPincode] = useState<VendorPincode | null>(
+    null
+  );
+  const [availablePincodes, setAvailablePincodes] = useState<PincodeDetails[]>(
+    []
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [selectedPincode, setSelectedPincode] = useState("");
@@ -34,7 +51,7 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
       const pincode = await PincodeManager.getVendorPincode();
       setVendorPincode(pincode);
     } catch (error) {
-      console.error('Error loading vendor pincode:', error);
+      console.error("Error loading vendor pincode:", error);
       // If no pincode is assigned, this is expected
       setVendorPincode(null);
     } finally {
@@ -47,10 +64,10 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
       const { pincodes } = await PincodeManager.getAvailablePincodes();
       setAvailablePincodes(pincodes);
     } catch (error) {
-      console.error('Error loading available pincodes:', error);
+      console.error("Error loading available pincodes:", error);
       toast({
-        title: "Error loading pincodes",
-        description: "Failed to load available pincodes. Please try again.",
+        title: t("pincode_management_extended.error_loading_pincodes"),
+        description: t("pincode_management_extended.error_loading_pincodes"),
         variant: "destructive",
       });
     }
@@ -60,8 +77,8 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
     // Must be exactly 6 digits
     if (!/^\d{6}$/.test(pincode)) {
       toast({
-        title: "Invalid pincode format",
-        description: "Pincode must be exactly 6 digits.",
+        title: t("pincode_management_extended.invalid_pincode"),
+        description: t("pincode_management_extended.pincode_6_digits"),
         variant: "destructive",
       });
       return false;
@@ -72,8 +89,8 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
   const handleAddPincode = async () => {
     if (!selectedPincode) {
       toast({
-        title: "Missing information",
-        description: "Please select a pincode.",
+        title: t("discount_management_extended.missing_information"),
+        description: t("pincode_management_extended.select_pincode"),
         variant: "destructive",
       });
       return;
@@ -85,23 +102,30 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
 
     try {
       setIsCreating(true);
-      const newVendorPincode = await PincodeManager.createVendorPincode(selectedPincode);
+      const newVendorPincode = await PincodeManager.createVendorPincode(
+        selectedPincode
+      );
       setVendorPincode(newVendorPincode);
       setSelectedPincode("");
       setIsAdding(false);
 
       toast({
-        title: "Pincode assigned successfully",
-        description: `${selectedPincode} has been assigned to your service area.`,
+        title: t("pincode_management_extended.pincode_assigned"),
+        description: t("pincode_management_extended.pincode_assigned_desc", {
+          pincode: selectedPincode,
+        }),
       });
 
       // Reload available pincodes to update the list
       await loadAvailablePincodes();
     } catch (error) {
-      console.error('Error creating vendor pincode:', error);
+      console.error("Error creating vendor pincode:", error);
       toast({
-        title: "Failed to assign pincode",
-        description: error instanceof Error ? error.message : "Please try again or contact support.",
+        title: t("pincode_management_extended.failed_assign_pincode"),
+        description:
+          error instanceof Error
+            ? error.message
+            : t("common.try_again_support"),
         variant: "destructive",
       });
     } finally {
@@ -117,7 +141,8 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
       // This would require a separate API endpoint for deletion if needed
       toast({
         title: "Cannot remove pincode",
-        description: "Pincodes cannot be removed once assigned. Please contact support if you need to change your service area.",
+        description:
+          "Pincodes cannot be removed once assigned. Please contact support if you need to change your service area.",
         variant: "destructive",
       });
     } catch (error) {
@@ -130,7 +155,7 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
   };
 
   const getSelectedPincodeDetails = (): PincodeDetails | undefined => {
-    return availablePincodes.find(p => p.pincode === selectedPincode);
+    return availablePincodes.find((p) => p.pincode === selectedPincode);
   };
 
   if (isLoading) {
@@ -139,7 +164,9 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
         <CardContent className="flex items-center justify-center py-8">
           <div className="text-center">
             <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2 animate-spin" />
-            <p className="text-sm text-muted-foreground">Loading service area...</p>
+            <p className="text-sm text-muted-foreground">
+              Loading service area...
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -156,7 +183,9 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
             </div>
             <div>
               <h3 className="text-xl font-semibold">Service Area</h3>
-              <p className="text-sm text-muted-foreground">Manage your delivery pincode</p>
+              <p className="text-sm text-muted-foreground">
+                Manage your delivery pincode
+              </p>
             </div>
           </div>
           {!vendorPincode && (
@@ -174,40 +203,61 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="pincode-select">Select Pincode</Label>
-                    <Select value={selectedPincode} onValueChange={setSelectedPincode}>
+                    <Select
+                      value={selectedPincode}
+                      onValueChange={setSelectedPincode}
+                    >
                       <SelectTrigger>
                         <SelectValue placeholder="Choose a pincode" />
                       </SelectTrigger>
                       <SelectContent>
                         {availablePincodes.map((pincode) => (
-                          <SelectItem key={pincode.pincode} value={pincode.pincode}>
+                          <SelectItem
+                            key={pincode.pincode}
+                            value={pincode.pincode}
+                          >
                             {pincode.pincode} - {pincode.city}, {pincode.state}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   {selectedPincode && getSelectedPincodeDetails() && (
                     <div className="p-3 bg-muted rounded-lg">
                       <div className="flex items-center gap-2 mb-2">
                         <AlertCircle className="h-4 w-4 text-blue-500" />
-                        <span className="text-sm font-medium">Pincode Details</span>
+                        <span className="text-sm font-medium">
+                          Pincode Details
+                        </span>
                       </div>
                       <div className="text-sm space-y-1">
-                        <p><span className="font-medium">City:</span> {getSelectedPincodeDetails()?.city}</p>
-                        <p><span className="font-medium">State:</span> {getSelectedPincodeDetails()?.state}</p>
-                        <p><span className="font-medium">Coordinates:</span> {getSelectedPincodeDetails()?.lat}, {getSelectedPincodeDetails()?.lng}</p>
+                        <p>
+                          <span className="font-medium">City:</span>{" "}
+                          {getSelectedPincodeDetails()?.city}
+                        </p>
+                        <p>
+                          <span className="font-medium">State:</span>{" "}
+                          {getSelectedPincodeDetails()?.state}
+                        </p>
+                        <p>
+                          <span className="font-medium">Coordinates:</span>{" "}
+                          {getSelectedPincodeDetails()?.lat},{" "}
+                          {getSelectedPincodeDetails()?.lng}
+                        </p>
                       </div>
                     </div>
                   )}
 
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => setIsAdding(false)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsAdding(false)}
+                    >
                       Cancel
                     </Button>
-                    <Button 
-                      onClick={handleAddPincode} 
+                    <Button
+                      onClick={handleAddPincode}
                       disabled={!selectedPincode || isCreating}
                     >
                       {isCreating ? (
@@ -234,8 +284,12 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
           {!vendorPincode ? (
             <div className="text-center py-8">
               <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No service area assigned</h3>
-              <p className="text-muted-foreground mb-4">Assign a pincode to start delivering in that area</p>
+              <h3 className="text-lg font-semibold mb-2">
+                No service area assigned
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Assign a pincode to start delivering in that area
+              </p>
               <Button onClick={() => setIsAdding(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Assign Your First Pincode
@@ -250,16 +304,23 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <span className="font-mono font-semibold text-xl break-words">{vendorPincode.pincode}</span>
-                      <Badge variant="default" className="bg-success hover:bg-success/80 flex-shrink-0">
+                      <span className="font-mono font-semibold text-xl break-words">
+                        {vendorPincode.pincode}
+                      </span>
+                      <Badge
+                        variant="default"
+                        className="bg-success hover:bg-success/80 flex-shrink-0"
+                      >
                         Active
                       </Badge>
                     </div>
                     <p className="text-sm text-muted-foreground break-words">
-                      {vendorPincode.pincodeDetails.city}, {vendorPincode.pincodeDetails.state}
+                      {vendorPincode.pincodeDetails.city},{" "}
+                      {vendorPincode.pincodeDetails.state}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">
-                      Coordinates: {vendorPincode.pincodeDetails.lat}, {vendorPincode.pincodeDetails.lng}
+                      Coordinates: {vendorPincode.pincodeDetails.lat},{" "}
+                      {vendorPincode.pincodeDetails.lng}
                     </p>
                   </div>
                 </div>
@@ -275,14 +336,16 @@ const PincodeManagement = ({ vendorId }: PincodeManagementProps) => {
                   </Button>
                 </div>
               </div>
-              
+
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center gap-2 mb-2">
                   <AlertCircle className="h-4 w-4 text-blue-600" />
-                  <span className="text-sm font-medium text-blue-800">Important Notice</span>
+                  <span className="text-sm font-medium text-blue-800">
+                    Important Notice
+                  </span>
                 </div>
                 <p className="text-sm text-blue-700">
-                  Once a pincode is assigned, it cannot be changed or removed. 
+                  Once a pincode is assigned, it cannot be changed or removed.
                   This ensures consistent service delivery to your customers.
                 </p>
               </div>

@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import {
     DropdownMenu,
@@ -10,10 +9,6 @@ import {
     DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
-    Type,
-    Languages,
-    Minus,
-    Plus,
     LogOut
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
